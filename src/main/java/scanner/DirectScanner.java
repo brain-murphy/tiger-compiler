@@ -17,12 +17,17 @@ public class DirectScanner implements Scanner {
 
     @Override
     public Token nextToken() {
-        if (cursorPosition >= fileText.length()) {
+        if (!hasNextToken()) {
             throw new RuntimeException("End of file; no more tokens");
         }
 
         token();
         return scannedTokens.get(scannedTokens.size() - 1);
+    }
+
+    @Override
+    public boolean hasNextToken() {
+        return cursorPosition < fileText.length();
     }
 
     private void token() {
