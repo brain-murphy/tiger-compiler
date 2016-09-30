@@ -5,61 +5,71 @@ import java.util.regex.Pattern;
 
 public enum TokenType {
 
-    COMMA("^,"),
-    COLON("^:"),
-    SEMI("^;"),
-    LPAREN("^("),
-    RPAREN("^)"),
-    LBRACK("^["),
-    RBRACK("^]"),
-    LBRACE("^{"),
-    RBRACE("^}"),
-    PERIOD("^."),
-    PLUS("^+"),
-    MINUS("^-"),
-    MULT("^*"),
-    DIV("^/"),
-    EQ("^="),
-    NEQ("^<>"),
-    LESSER("^<"),
-    GREATER("^>"),
-    LESSEREQ("^<="),
-    GREATREQ("^>="),
-    AND("^&"),
-    OR("^|"),
-    ASSIGN("^:="),
+    ID("^[a-zA-Z][a-zA-Z0-9]*"),
+    INTLIT("^[1-9][0-9]*"),
+    FLOATLIT("^[0-9]*\\.?[0-9]*"),
 
-    ARRAY("^array"),
-    BREAK("^break"),
-    DO("^do"),
-    ELSE("^else"),
-    FOR("^for"),
-    FUNC("^func"),
-    IF("^if"),
-    IN("^in"),
-    LET("^let"),
-    OF("^of"),
-    THEN("^then"),
-    TO("^to"),
-    TYPE("^type"),
-    VAR("^var"),
-    WHILE("^while"),
-    ENDIF("^endif"),
-    BEGIN("^begin"),
-    END("^end"),
-    ENDDO("^enddo");
 
-    private Pattern regex;
+    COMMA(","),
+    COLON(":"),
+    SEMI(";"),
+    LPAREN("("),
+    RPAREN(")"),
+    LBRACK("["),
+    RBRACK("]"),
+    LBRACE("{"),
+    RBRACE("}"),
+    PERIOD("."),
+    PLUS("+"),
+    MINUS("-"),
+    MULT("*"),
+    DIV("/"),
+    EQ("="),
+    NEQ("<>"),
+    LESSER("<"),
+    GREATER(">"),
+    LESSEREQ("<="),
+    GREATREQ(">="),
+    AND("&"),
+    OR("|"),
+    ASSIGN(":="),
 
-    TokenType(String regex) {
-        this.regex = Pattern.compile(regex);
+    ARRAY("array"),
+    BREAK("break"),
+    DO("do"),
+    ELSE("else"),
+    FOR("for"),
+    FUNC("func"),
+    IF("if"),
+    IN("in"),
+    LET("let"),
+    OF("of"),
+    THEN("then"),
+    TO("to"),
+    TYPE("type"),
+    VAR("var"),
+    WHILE("while"),
+    ENDIF("endif"),
+    BEGIN("begin"),
+    END("end"),
+    ENDDO("enddo");
+
+    public static final TokenType[] KEYWORDS = {
+        ARRAY, BREAK, DO, ELSE, FOR, FUNC, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO
+    };
+
+    private String pattern;
+
+    TokenType(String pattern) {
+        this.pattern = pattern;
     }
 
-    public Pattern getRegex() {
-        return regex;
+    public String getPattern() {
+        return pattern;
     }
 
     public int getPrecedence() {
         return ordinal();
     }
+
 }
