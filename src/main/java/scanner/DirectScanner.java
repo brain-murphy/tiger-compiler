@@ -100,6 +100,9 @@ public class DirectScanner implements Scanner {
             case '|':
                 acceptToken(cursorPosition + 1, TokenType.OR);
                 break;
+            default:
+                //TODO throw error, character not valid in language
+                break;
         }
     }
 
@@ -268,5 +271,25 @@ public class DirectScanner implements Scanner {
         }
 
         return scannedTokens.get(tokenIndex);
+    }
+
+    @Override
+    public LexicalError getLexicalError(Token problemToken, List<TokenType> expectedTokenTypes) {
+        return new LexicalError(problemToken.getText(), getCursorLineNumber(), expectedTokenTypes);
+    }
+
+    private int getCursorLineNumber() {
+        int numNewlines = 0;
+        for (int i = 0; i < cursorPosition; i++) {
+            if (isNewline(charAt(i))) {
+                numNewlines += 1;
+            }
+        }
+
+        return numNewlines;
+    }
+
+    private boolean isNewline(char character) {
+        return !String.valueOf(character).matches("."); // matches all characters except newlines.
     }
 }
