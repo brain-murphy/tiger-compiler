@@ -162,6 +162,9 @@ public class LexicalErrorFinder {
             case WHILE:
                 return keyword(WHILE);
 
+            case RETURN:
+                return keyword(RETURN);
+
             default:
                 throw new RuntimeException("No lexical error finding for TokenType " + typeToMatch.name());
         }
