@@ -70,14 +70,25 @@ public class Parser implements ParserInterface
             {"4", "<Aterm-tail>", "LESSEREQ", "<Bterm>"},
             {"4", "<Aterm-tail>", "GREATEREQ", "<Bterm>"},
             {"3", "<Aterm-tail>", "NULL"},
-            {"", },
-            {"", },
-            {"", },
-            {"", },
-            {"", },
-            {"", },
-            {"", },
-            {"", }
+            {"4", "<Bterm>", "<Cterm>", "<Bterm-tail>"},
+            {"4", "<Bterm-tail>", "PLUS", "<Cterm>"},
+            {"4", "<Bterm-tail>", "MINUS", "<Cterm>"},
+            {"3", "<Bterm-tail>", "NULL"},
+            {"4", "<Cterm>", "<factor>", "<Cterm-tail>"},
+            {"4", "<Cterm-tail>", "MULT", "<factor>"},
+            {"4", "<Cterm-tail>", "DIV", "<factor>"},
+            {"3", "<Cterm-tail>", "NULL"},
+            {"3", "<factor>", "<const>"},
+            {"4", "<factor>", "ID", "<lvalue>"},
+            {"5", "<factor>", "LPAREN", "<expr>", "RPAREN"},
+            {"3", "<const>", "INTLIT"},
+            {"3", "<const>", "FLOATLIT"},
+            {"3", "<expr-list>", "NULL"},
+            {"4", "<expr-list>", "<expr>", "<expr-list-tail>"},
+            {"5", "<expr-list-tail>", "COMMA", "<expr>", "<expr-list-tail>"},
+            {"3", "<expr-list-tail>", "NULL"},
+            {"3", "<lvalue>", "NULL"},
+            {"5", "<lvalue>", "LBRACK", "<expr>", "RBRACK"}
             }
 
         int i = 0;
