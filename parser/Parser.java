@@ -91,11 +91,9 @@ public class Parser implements ParserInterface
             {"5", "<lvalue>", "LBRACK", "<expr>", "RBRACK"}
             }
 
-        int i = 0;
-        while (i < ) // Need the total number of rules
+            for (int i = 0; i < arrayOfRules.length; i++) // Need the total number of rules
             {   
-            listOfRules.add(new ArrayList<String>);
-            ++i;
+                listOfRules.add(new ArrayList<String>);
             }
         }
 
