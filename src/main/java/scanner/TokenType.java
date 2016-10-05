@@ -40,6 +40,7 @@ public enum TokenType {
     ELSE("else"),
     FOR("for"),
     FUNC("function"),
+    RETURN("return"),
     IF("if"),
     IN("in"),
     LET("let"),
@@ -55,7 +56,7 @@ public enum TokenType {
     ENDDO("enddo");
 
     public static final TokenType[] KEYWORDS = {
-        ARRAY, BREAK, DO, ELSE, FOR, FUNC, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO
+        ARRAY, BREAK, DO, ELSE, FOR, FUNC, RETURN, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO
     };
 
     private String pattern;
