@@ -106,8 +106,9 @@ public class DirectScanner implements Scanner {
                 acceptToken(cursorPosition + 1, TokenType.OR);
                 break;
             default:
-                //TODO throw error, character not valid in language
-                break;
+                throw new RuntimeException(nextChar + " is not a valid character in the Tiger language.\n" +
+                        "See line " + getCursorLineNumber() + "\n" +
+                        fileText.substring(cursorPosition - 10, cursorPosition + 1) + "<--");
         }
     }
 
@@ -219,7 +220,7 @@ public class DirectScanner implements Scanner {
 
             switch (nextChar) {
                 case '=':
-                    acceptToken(cursorPosition + 2, TokenType.GREATREQ);
+                    acceptToken(cursorPosition + 2, TokenType.GREATEREQ);
                     break;
                 default:
                     acceptToken(scanningIndex, TokenType.GREATER);
