@@ -29,7 +29,7 @@ public enum TokenType {
     LESSER("<"),
     GREATER(">"),
     LESSEREQ("<="),
-    GREATREQ(">="),
+    GREATEREQ(">="),
     AND("&"),
     OR("|"),
     ASSIGN(":="),
