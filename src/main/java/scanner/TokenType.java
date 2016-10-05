@@ -39,7 +39,7 @@ public enum TokenType {
     DO("do"),
     ELSE("else"),
     FOR("for"),
-    FUNC("func"),
+    FUNC("function"),
     IF("if"),
     IN("in"),
     LET("let"),
