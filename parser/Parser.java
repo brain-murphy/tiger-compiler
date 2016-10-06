@@ -10,6 +10,8 @@ public class Parser implements ParserInterface
     {
     private ArrayList<ArrayList<String>> listOfRules = new ArrayList<ArrayList<String>>();
     private Map<String, Map<String, int>> parsingTable = new HashMap<String, HashMap<String, int>>();
+    private Map<String, Map<String, int>> firstSet = new HashMap<String, HashMap<String, int>>(); //<NT, <T or NT, # of rules>>
+    // After completing the construction of firstSet, there should be only T in the latter part
     
 
     private void fill_listOfRules()
@@ -95,13 +97,86 @@ public class Parser implements ParserInterface
 
             for (int i = 0; i < arrayOfRules.length; i++) // Need the total number of rules
                 {
-                List<String> tempList = new ArrayList<Class>();
+                List<String> tempList = new ArrayList<String>();
                 for(int j; j < arrayOfRules[i].length; ++j)
                     {
                     tempList.add( arrayOfRules[i][j] );
                     } 
                 listOfRules.add( tempList );
                 }
+        }
+
+    private void initialize_parsingTable()
+        {
+        for(int i = 0;i < listOfRules.size(); ++i)
+            {
+            if( parsingTable.containsKey( listOfRules[i][0] ) != true )
+                {
+                // a new NT
+                Map<String, int> tempMap = new HashMap<String, int>();
+                Map<String, int> tempMap2 = new HashMap<String, int>();
+                parsingTable.put( listOfRules[i][0], tempMap );
+                firstSet.put( listOfRules[i][0], tempMap2 );
+                }
+            }
+        }
+
+    private void compute_FirstSet()
+        {
+        // First, traversing through all rules
+        for(i = 0; i < listOfRules.size(); ++i)
+            {
+            firstSet.get( listOfRules[i][0] ).put( listOfRules[i][1], i );
+            }
+        // Expand all NT in the first set
+        boolean setChangingFlag = true;
+        while(setChangingFlag == true)
+            {
+            setChangingFlag = false;
+            for (Map.Entry<String, Map<String, int>> entry : firstSet.entrySet()) 
+                {
+                //key = entry.getKey();
+                //value = entry.getValue();
+                Map<String, int> tempMap = entry.getValue();
+                ArrayList<ArrayList<String>> symbolList = new ArrayList<ArrayList<String>>();
+                ArrayList<String> NT_for_remove_List = new ArrayList<String>();
+
+                for(Map.Entry<String, int> l2_entry : tempMap.entrySet())
+                    {
+                    if( firstSet.containsKey( l2_entry.getKey() ) )
+                        {
+                        // Found a NT, need to further expand it
+                        setChangingFlag = true;
+                        Map<String, int> other_NT = firstSet.get( l2_entry.getKey() );
+                        NT_for_remove_List.add( l2_entry.getKey() );
+                        ArrayList<String> tempSymbolList = new ArrayList<String>();
+                        // Copy the first set of the other NT to this NT
+                        // Should not simply add to the NT, since we are traversing the NT now
+                        // Instead, storing the new symbols to a temporary place: 2D arrayList
+                        for(String key : other_NT.keySet())
+                            {
+                            if( Objects.equals(key, "NULL") != true )
+                                {
+                                // We don't want NULL
+                                tempSymbolList.add( key );
+                                }
+                            }
+                        symbolList.add( tempSymbolList );
+                        }
+                    }
+                // Remove the NTs we have expanded
+                for(int i; i < symbolList.size(); ++i)
+                    {
+                    int rule_number = tempMap.get( NT_for_remove_List[i] );
+                    for(int j; j < symbolList[i].size(); ++j)
+                        {
+                        tempMap.put( symbolList[i][j], rule_number );
+                        }
+                    tempMap.remove( NT_for_remove_List[i] );
+                    }
+                }
+            }
+
         }
 
     private void fill_parsingTable()
@@ -112,6 +187,7 @@ public class Parser implements ParserInterface
     public Parser(String fileText) 
         {
         fill_listOfRules();
+        initialize_parsingTable();
         fill_parsingTable();
         this.fileText = fileText;
         scannedTokens = new ArrayList<>();
