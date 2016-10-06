@@ -12,6 +12,7 @@ public class Parser implements ParserInterface
     private Map<String, Map<String, int>> parsingTable = new HashMap<String, HashMap<String, int>>();
     private Map<String, Map<String, int>> firstSet = new HashMap<String, HashMap<String, int>>(); //<NT, <T or NT, # of rules>>
     // After completing the construction of firstSet, there should be only T in the latter part
+    private 
     
 
     private void fill_listOfRules()
@@ -139,7 +140,7 @@ public class Parser implements ParserInterface
                 //value = entry.getValue();
                 Map<String, int> tempMap = entry.getValue();
                 ArrayList<ArrayList<String>> symbolList = new ArrayList<ArrayList<String>>();
-                ArrayList<String> NT_for_remove_List = new ArrayList<String>();
+                ArrayList<String> nt_for_remove_List = new ArrayList<String>();
 
                 for(Map.Entry<String, int> l2_entry : tempMap.entrySet())
                     {
@@ -148,18 +149,19 @@ public class Parser implements ParserInterface
                         // Found a NT, need to further expand it
                         setChangingFlag = true;
                         Map<String, int> other_NT = firstSet.get( l2_entry.getKey() );
-                        NT_for_remove_List.add( l2_entry.getKey() );
+                        nt_for_remove_List.add( l2_entry.getKey() );
                         ArrayList<String> tempSymbolList = new ArrayList<String>();
                         // Copy the first set of the other NT to this NT
                         // Should not simply add to the NT, since we are traversing the NT now
                         // Instead, storing the new symbols to a temporary place: 2D arrayList
                         for(String key : other_NT.keySet())
                             {
-                            if( Objects.equals(key, "NULL") != true )
-                                {
+                            // if( Objects.equals(key, "NULL") != true )
+                                // {
                                 // We don't want NULL
-                                tempSymbolList.add( key );
-                                }
+                            // We should put NULL
+                            tempSymbolList.add( key );
+                                // }
                             }
                         symbolList.add( tempSymbolList );
                         }
@@ -167,15 +169,20 @@ public class Parser implements ParserInterface
                 // Remove the NTs we have expanded
                 for(int i; i < symbolList.size(); ++i)
                     {
-                    int rule_number = tempMap.get( NT_for_remove_List[i] );
+                    int rule_number = tempMap.get( nt_for_remove_List[i] );
                     for(int j; j < symbolList[i].size(); ++j)
                         {
                         tempMap.put( symbolList[i][j], rule_number );
                         }
-                    tempMap.remove( NT_for_remove_List[i] );
+                    tempMap.remove( nt_for_remove_List[i] );
                     }
                 }
             }
+
+        }
+
+    private void compute_FollowSet()
+        {
 
         }
 
