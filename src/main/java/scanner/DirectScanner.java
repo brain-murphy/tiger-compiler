@@ -5,6 +5,9 @@ import java.util.List;
 
 public class DirectScanner implements Scanner {
 
+    public static final int COMMENT_OPEN_LENGTH = "/*".length();
+    public static final int COMMENT_CLOSE_LENGTH = "*/".length();
+
     private int cursorPosition;
     private String fileText;
 
@@ -51,12 +54,19 @@ public class DirectScanner implements Scanner {
             case '<':
                 openAngleBracketOp();
                 break;
+
             case '>':
                 closeAngleBracketOp();
                 break;
+
             case ':':
                 colonOp();
                 break;
+
+            case '/':
+                forwardSlash();
+                break;
+
             case ',':
                 acceptToken(cursorPosition + 1, TokenType.COMMA);
                 break;
@@ -92,9 +102,6 @@ public class DirectScanner implements Scanner {
                 break;
             case '*':
                 acceptToken(cursorPosition + 1, TokenType.MULT);
-                break;
-            case '/':
-                acceptToken(cursorPosition + 1, TokenType.DIV);
                 break;
             case '=':
                 acceptToken(cursorPosition + 1, TokenType.EQ);
@@ -254,7 +261,11 @@ public class DirectScanner implements Scanner {
         String tokenText = fileText.substring(cursorPosition, delimitingCharacter);
         scannedTokens.add(new Token(tokenType, tokenText));
 
-        cursorPosition = delimitingCharacter;
+        advanceCursor(delimitingCharacter);
+    }
+
+    private void advanceCursor(int characterIndex) {
+        cursorPosition = characterIndex;
 
         advanceCursorPastWhitespace();
     }
@@ -296,6 +307,40 @@ public class DirectScanner implements Scanner {
     }
 
     private boolean isNewline(char character) {
-        return !String.valueOf(character).matches("."); // matches all characters except newlines.
+        return !String.valueOf(character).matches("."); // "." matches all characters except newlines.
+    }
+
+    private void forwardSlash() {
+        int scanningIndex = cursorPosition + 1;
+
+        if (hasNextChar(scanningIndex)) {
+            char nextChar = charAt(scanningIndex);
+
+            if (nextChar == '*') {
+                comment();
+            } else {
+                acceptToken(scanningIndex, TokenType.DIV);
+            }
+
+        } else {
+            acceptToken(scanningIndex, TokenType.DIV);
+        }
+    }
+
+    private void comment() {
+        int scanningIndex = cursorPosition + COMMENT_OPEN_LENGTH;
+
+        while (hasNextChar(scanningIndex + 1)) {
+
+            if (charAt(scanningIndex) == '*' && charAt(scanningIndex + 1) == '/') {
+                advanceCursor(scanningIndex + COMMENT_CLOSE_LENGTH);
+                token();
+                
+                return;
+            }
+            scanningIndex = scanningIndex + 1;
+        }
+
+        throw new RuntimeException("File ended while comment was not closed.");
     }
 }
