@@ -10,6 +10,8 @@ public class Parser implements ParserInterface
     {
     private ArrayList<ArrayList<String>> listOfRules = new ArrayList<ArrayList<String>>();
     private Map<String, Map<String, int>> parsingTable = new HashMap<String, HashMap<String, int>>();
+    
+
     private void fill_listOfRules()
         {
 
