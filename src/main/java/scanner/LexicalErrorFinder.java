@@ -69,7 +69,7 @@ public class LexicalErrorFinder {
             case GREATER:
                 return 0;
 
-            case GREATREQ:
+            case GREATEREQ:
                 if (problemString.charAt(0) == '>') {
                     return 0;
                 } else {
