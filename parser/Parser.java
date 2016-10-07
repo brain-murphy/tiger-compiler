@@ -12,7 +12,7 @@ public class Parser implements ParserInterface
     private Map<String, Map<String, int>> parsingTable = new HashMap<String, HashMap<String, int>>();
     private Map<String, Map<String, int>> firstSet = new HashMap<String, HashMap<String, int>>(); //<NT, <T or NT, # of rules>>
     // After completing the construction of firstSet, there should be only T in the latter part
-    private 
+    private Map<String, Map<String, String>> followSet = new HashMap<String, HashMap<String, String>>();
     
 
     private void fill_listOfRules()
@@ -116,8 +116,10 @@ public class Parser implements ParserInterface
                 // a new NT
                 Map<String, int> tempMap = new HashMap<String, int>();
                 Map<String, int> tempMap2 = new HashMap<String, int>();
+                Map<String, String> tempMap3 = new HashMap<String, String>();
                 parsingTable.put( listOfRules[i][0], tempMap );
                 firstSet.put( listOfRules[i][0], tempMap2 );
+                followSet.put( listOfRules[i][0], tempMap3 );
                 }
             }
         }
@@ -183,7 +185,69 @@ public class Parser implements ParserInterface
 
     private void compute_FollowSet()
         {
+        followSet.get( listOfRules[0][0] ).put( "$","$"  ); // Add $ to the start NT
+        for(int i; i < listOfRules.size(); ++i)
+            {
+            // Iterating through each rule
+            int j = listOfRules[i].size() - 1;
+            if( followSet.containsKey( listOfRules[i][j] ) )
+                {
+                // The last symbol is a NT
+                followSet.get( listOfRules[i][j] ).put( listOfRules[i][0], listOfRules[i][0] );
+                // Do we need to do this in every iteration?
+                }
+            while( j >= 1 )
+                {
+                if( followSet.containsKey( listOfRules[i][j-1] ) )
+                    {
+                    Map<String, String> currentNTMap = followSet.get( listOfRules[i][j-1] );
+                    // This is a NT
+                    // Follow(j-1) = First(j) - NULL
+                    Map<String, int> tempMap = firstSet.get( listOfRules[i][j] );
+                    for(String key : tempMap.keySet())
+                        {
+                        if( Objects.equals(key, "NULL") != true && Objects.equals(key, listOfRules[i][j-1]) != true )
+                            {
+                            currentNTMap.put( key, key );
+                            }
+                        }
+                    if( firstSet.get( listOfRules[i][j] ).containsKey("NULL") == true )
+                        {
+                        // Follow(j-1) contains Follow( listOfRules[i][0] )
+                        currentNTMap.put( listOfRules[i][0], listOfRules[i][0] );
+                        }
+                    }
+                --j;
+                }
+            }
+        // Then we have to expand all NT in each Follow set
 
+        boolean setChangingFlag = true;
+        while(setChangingFlag == true)
+            {
+            setChangingFlag = false;
+            for (Map.Entry<String, Map<String, String>> entry : followSet.entrySet()) 
+                {
+                Map<String, int> currentMap = entry.getValue();
+                String currentNT = entry.getKey();
+                for(String key : currentMap.keySet())
+                    {
+                    if( followSet.containsKey( key ) )
+                        {
+                        setChangingFlag = true;
+                        // We found a NT, it needs to be expand
+                        Map<String, int> tempMap = followSet.get( key );
+                        for(String element_of_set : tempMap.keySet())
+                            {
+                            if( Objects.equals(element_of_set, currentNT) != true )
+                                {
+                                currentMap.add( element_of_set );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
     private void fill_parsingTable()
