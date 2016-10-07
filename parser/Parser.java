@@ -115,6 +115,7 @@ public class Parser implements ParserInterface
             if( parsingTable.containsKey( listOfRules.get(i).get(0) ) != true )
                 {
                 // a new NT
+                System.out.println(i);
                 HashMap<String, Integer> tempMap = new HashMap<String, Integer>();
                 HashMap<String, Integer> tempMap2 = new HashMap<String, Integer>();
                 HashMap<String, String> tempMap3 = new HashMap<String, String>();
@@ -204,19 +205,25 @@ public class Parser implements ParserInterface
                     HashMap<String, String> currentNTMap = followSet.get( listOfRules.get(i).get(j-1) );
                     // This is a NT
                     // Follow(j-1) = First(j) - NULL
-                    HashMap<String, Integer> tempMap = firstSet.get( listOfRules.get(i).get(j) );
-                    for(String key : tempMap.keySet())
+                    if( followSet.containsKey( listOfRules.get(i).get(j) ) )
                         {
-                        if( Objects.equals(key, "NULL") != true && Objects.equals(key, listOfRules.get(i).get(j-1)) != true )
+                        HashMap<String, Integer> tempMap = firstSet.get( listOfRules.get(i).get(j) );
+                        for(String key : tempMap.keySet())
                             {
-                            currentNTMap.put( key, key );
+                            if( Objects.equals(key, "NULL") != true && Objects.equals(key, listOfRules.get(i).get(j-1)) != true )
+                                {
+                                currentNTMap.put( key, key );
+                                }
+                            }
+                        if( firstSet.get( listOfRules.get(i).get(j) ).containsKey("NULL") == true )
+                            {
+                            // Follow(j-1) contains Follow( listOfRules[i][0] )
+                            currentNTMap.put( listOfRules.get(i).get(0), listOfRules.get(i).get(0) );
                             }
                         }
-                    if( firstSet.get( listOfRules.get(i).get(j) ).containsKey("NULL") == true )
-                        {
-                        // Follow(j-1) contains Follow( listOfRules[i][0] )
-                        currentNTMap.put( listOfRules.get(i).get(0), listOfRules.get(i).get(0) );
-                        }
+                    else
+                        if( Objects.equals(listOfRules.get(i).get(j), "NULL") != true )
+                            currentNTMap.put( listOfRules.get(i).get(j), listOfRules.get(i).get(j) );
                     }
                 --j;
                 }
@@ -226,28 +233,64 @@ public class Parser implements ParserInterface
         boolean setChangingFlag = true;
         while(setChangingFlag == true)
             {
+            System.out.println("==========================================");
             setChangingFlag = false;
             for (Map.Entry<String, HashMap<String, String>> entry : followSet.entrySet()) 
                 {
                 HashMap<String, String> currentMap = entry.getValue();
                 String currentNT = entry.getKey();
+                ArrayList<String> expandedSymbolsList = new ArrayList<String>();
+                ArrayList<String> removedKeyList = new ArrayList<String>();
+
+                System.out.println( currentNT );
+
                 for(String key : currentMap.keySet())
                     {
+                    System.out.print( key + ", ");
                     if( followSet.containsKey( key ) )
                         {
                         setChangingFlag = true;
+                        removedKeyList.add( key );
                         // We found a NT, it needs to be expand
                         HashMap<String, String> tempMap = followSet.get( key );
                         for(String element_of_set : tempMap.keySet())
                             {
-                            if( Objects.equals(element_of_set, currentNT) != true )
+                            if( Objects.equals(element_of_set, currentNT) != true && Objects.equals(element_of_set, "NULL") != true )
                                 {
-                                currentMap.put( element_of_set, element_of_set );
+                                //currentMap.put( element_of_set, element_of_set );
+                                expandedSymbolsList.add( element_of_set );
                                 }
                             }
                         }
                     }
+                System.out.println();
+                for(int i = 0; i < expandedSymbolsList.size(); ++i)
+                    {
+                    currentMap.put( expandedSymbolsList.get(i), expandedSymbolsList.get(i) );
+                    }
+                System.out.println();
+                for(int i = 0; i < removedKeyList.size(); ++i)
+                    {
+                    currentMap.remove( removedKeyList.get(i) );
+                    }
                 }
+            }
+        }
+
+    private void print_firstSet()
+        {
+        int i = 0;
+        while( i < listOfRules.size() )
+            {
+            String currentNT = listOfRules.get(i).get(0);
+            System.out.print( i + ": " + currentNT );
+            HashMap<String, Integer> tempMap = firstSet.get( currentNT );
+            for (Map.Entry<String, Integer> entry : tempMap.entrySet()) 
+                {
+                System.out.print("(" + entry.getKey() + "," + entry.getValue() + ") ,");
+                }
+            System.out.println();
+            ++i;
             }
         }
 
@@ -256,14 +299,19 @@ public class Parser implements ParserInterface
 
         }
 
-    public Parser(String fileText) 
+    public Parser() 
         {
         fill_listOfRules();
         initialize_parsingTable();
         compute_FirstSet();
+        print_firstSet();
         compute_FollowSet();
         //fill_parsingTable();
         //this.fileText = fileText;
         //scannedTokens = new ArrayList<>();
+        }
+    public static void main(String[] args)
+        {
+        Parser obj = new Parser();
         }
     }
