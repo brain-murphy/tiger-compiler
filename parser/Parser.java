@@ -1,3 +1,5 @@
+package parser;
+
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,14 +8,16 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.List;
 import java.util.Objects;
+import java.util.Stack;
 
-public class Parser implements ParserInterface
+public class Parser
     {
     private ArrayList<ArrayList<String>> listOfRules = new ArrayList<ArrayList<String>>();
     private HashMap<String, HashMap<String, Integer>> parsingTable = new HashMap<String, HashMap<String, Integer>>();
     private HashMap<String, HashMap<String, Integer>> firstSet = new HashMap<String, HashMap<String, Integer>>(); //<NT, <T or NT, # of rules>>
     // After completing the construction of firstSet, there should be only T in the latter part
     private HashMap<String, HashMap<String, String>> followSet = new HashMap<String, HashMap<String, String>>();
+    //private ArrayList<String> listOfTokens = new ArrayList<String>();
     private ArrayList<Token> listOfTokens = new ArrayList<Token>();
     
 
@@ -310,11 +314,23 @@ public class Parser implements ParserInterface
                     HashMap<String, String> currentFollowSet = followSet.get( currentNT );
                     for (String element_of_set : currentFollowSet.keySet()) 
                         {
+                        if( currentRow.containsKey( element_of_set ) )
+                            {
+                            // Error checking
+                            System.out.println( "Try to add (" + element_of_set + "," + entry_of_First_set.getValue() + ")" );
+                            System.out.println( "----But there is already (" + element_of_set + "," + currentRow.get( element_of_set ) + ")" );
+                            }
                         currentRow.put( element_of_set, entry_of_First_set.getValue() );
                         }
                     }
                 else
                     {
+                    if( currentRow.containsKey( entry_of_First_set.getKey() ) )
+                        {
+                        // Error checking
+                        System.out.println( "Try to add (" + entry_of_First_set.getKey() + "," + entry_of_First_set.getValue() + ")" );
+                        System.out.println( "----But there is already (" + entry_of_First_set.getKey() + "," + currentRow.get( entry_of_First_set.getKey() ) + ")" );
+                        }
                     currentRow.put( entry_of_First_set.getKey(), entry_of_First_set.getValue() );
                     }
                 }
@@ -325,7 +341,7 @@ public class Parser implements ParserInterface
         {
         Stack<String> symbol_stack = new Stack<String>();
         int currentToken_idx = 0; // Use this variable as ptr for traversing through the list of tokens
-        String currentTokenType;
+        TokenType currentTokenType; // Conversion between TokenType and String?
         // Push the start symbol to the stack
         symbol_stack.push( listOfRules.get(0).get(0) );
         while( true )
@@ -395,7 +411,7 @@ public class Parser implements ParserInterface
         print_firstSet();
         compute_FollowSet();
         fill_parsingTable();
-        parsing();
+        //parsing();
         //this.fileText = fileText;
         //scannedTokens = new ArrayList<>();
         }
