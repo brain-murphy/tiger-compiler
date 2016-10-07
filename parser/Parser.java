@@ -324,25 +324,34 @@ public class Parser implements ParserInterface
     private void parsing()
         {
         Stack<String> symbol_stack = new Stack<String>();
+        int currentToken_idx = 0; // Use this variable as ptr for traversing through the list of tokens
+        String currentTokenType;
         // Push the start symbol to the stack
         symbol_stack.push( listOfRules.get(0).get(0) );
         while( true )
             {
-            if( symbol_stack.empty() == true &&  ) // No more input, parsing finish successfully
+            if( symbol_stack.empty() == true && currentToken_idx == listOfTokens.size() ) // No more input, parsing finish successfully
                 {
-
+                System.out.println("successful parse");
                 break;
                 }
-            else if( symbol_stack.empty() == true && ) // No more symbols in the stack, but still has input, error
+            else if( symbol_stack.empty() == true && currentToken_idx != listOfTokens.size() ) // No more symbols in the stack, but still has input, error
                 {
-                // What if no more input but we still has nonterminal?
+                
                 }
             else if( parsingTable.containsKey( symbol_stack.peek() ) != true )
                 {
                 // Top of stack is a terminal
-                if(  )
+                if( currentToken_idx == listOfTokens.size() )
+                    {
+                    // Error, no more input, but we still have terminal symbols
+                    }
+                currentTokenType = listOfTokens.get( currentToken_idx ).getTokenType();
+                if( Objects.equals( symbol_stack.peek(), currentTokenType ) == true )
                     {
                     // terminal match the input
+                    ++currentToken_idx;
+                    symbol_stack.pop();
                     }
                 else
                     {
@@ -352,8 +361,22 @@ public class Parser implements ParserInterface
             else
                 {
                 // A NT, we need to see the input and parsing table to decide how to expand the NT (which rules to use)
-                int rule_number = parsingTable.get( TOS ).get( next_input );
+                // What if no more input but we still has nonterminal?
+                int rule_number;
+                if( currentToken_idx == listOfTokens.size() )
+                    {
+                    // No more input, but we still have NT symbols
+                    // Find the rule by symbol $
+                    rule_number = parsingTable.get( symbol_stack.peek() ).get( "$" );
+                    }
+                else
+                    {
+                    currentTokenType = listOfTokens.get( currentToken_idx ).getTokenType();
+                    // Find the rule by the next token type
+                    rule_number = parsingTable.get( symbol_stack.peek() ).get( currentTokenType );
+                    }
                 // pop TOS
+                symbol_stack.pop();
                 for(int i = listOfRules.get( rule_number ).size() - 1; i >= 0 ; --i)
                     {
                     // Push the symbols in the rule backward
@@ -372,6 +395,7 @@ public class Parser implements ParserInterface
         print_firstSet();
         compute_FollowSet();
         fill_parsingTable();
+        parsing();
         //this.fileText = fileText;
         //scannedTokens = new ArrayList<>();
         }
