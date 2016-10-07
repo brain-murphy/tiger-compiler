@@ -296,7 +296,28 @@ public class Parser implements ParserInterface
 
     private void fill_parsingTable()
         {
+        for (Map.Entry<String, HashMap<String, Integer>> entry : parsingTable.entrySet()) 
+            {
+            HashMap<String, Integer> currentRow = entry.getValue();
+            String currentNT = entry.getKey();
 
+            HashMap<String, Integer> currentFirstSet = firstSet.get( currentNT );
+            for (Map.Entry<String, Integer> entry_of_First_set : currentFirstSet.entrySet()) 
+                {
+                if( Objects.equals( entry_of_First_set.getKey(), "NULL" ) == true )
+                    {
+                    HashMap<String, String> currentFollowSet = followSet.get( currentNT );
+                    for (String element_of_set : currentFollowSet.keySet()) 
+                        {
+                        currentRow.put( element_of_set, entry_of_First_set.getValue() );
+                        }
+                    }
+                else
+                    {
+                    currentRow.put( entry_of_First_set.getKey(), entry_of_First_set.getValue() );
+                    }
+                }
+            }
         }
 
     public Parser() 
@@ -306,7 +327,7 @@ public class Parser implements ParserInterface
         compute_FirstSet();
         print_firstSet();
         compute_FollowSet();
-        //fill_parsingTable();
+        fill_parsingTable();
         //this.fileText = fileText;
         //scannedTokens = new ArrayList<>();
         }
