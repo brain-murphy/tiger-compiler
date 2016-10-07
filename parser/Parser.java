@@ -14,6 +14,7 @@ public class Parser implements ParserInterface
     private HashMap<String, HashMap<String, Integer>> firstSet = new HashMap<String, HashMap<String, Integer>>(); //<NT, <T or NT, # of rules>>
     // After completing the construction of firstSet, there should be only T in the latter part
     private HashMap<String, HashMap<String, String>> followSet = new HashMap<String, HashMap<String, String>>();
+    private ArrayList<Token> listOfTokens = new ArrayList<Token>();
     
 
     private void fill_listOfRules()
@@ -318,6 +319,49 @@ public class Parser implements ParserInterface
                     }
                 }
             }
+        }
+
+    private void parsing()
+        {
+        Stack<String> symbol_stack = new Stack<String>();
+        // Push the start symbol to the stack
+        symbol_stack.push( listOfRules.get(0).get(0) );
+        while( true )
+            {
+            if( symbol_stack.empty() == true &&  ) // No more input, parsing finish successfully
+                {
+
+                break;
+                }
+            else if( symbol_stack.empty() == true && ) // No more symbols in the stack, but still has input, error
+                {
+                // What if no more input but we still has nonterminal?
+                }
+            else if( parsingTable.containsKey( symbol_stack.peek() ) != true )
+                {
+                // Top of stack is a terminal
+                if(  )
+                    {
+                    // terminal match the input
+                    }
+                else
+                    {
+                    // Error, terminal did not match the input
+                    }
+                }
+            else
+                {
+                // A NT, we need to see the input and parsing table to decide how to expand the NT (which rules to use)
+                int rule_number = parsingTable.get( TOS ).get( next_input );
+                // pop TOS
+                for(int i = listOfRules.get( rule_number ).size() - 1; i >= 0 ; --i)
+                    {
+                    // Push the symbols in the rule backward
+                    symbol_stack.push( listOfRules.get( rule_number ).get( i ) );
+                    }
+                }
+            }
+
         }
 
     public Parser() 
