@@ -1,13 +1,10 @@
 package scanner;
 
-import javax.swing.text.Position;
-import java.util.regex.Pattern;
-
 public enum TokenType {
 
     ID("^[a-zA-Z][a-zA-Z0-9]*"),
-    INTLIT("^[1-9][0-9]*"),
-    FLOATLIT("^[0-9]*\\.?[0-9]*"),
+    INTLIT("^0|([1-9][0-9]*)"),
+    FLOATLIT("^0|([1-9][0-9]*)\\.[0-9]*"),
 
 
     COMMA(","),
@@ -53,10 +50,13 @@ public enum TokenType {
     ENDIF("endif"),
     BEGIN("begin"),
     END("end"),
-    ENDDO("enddo");
+    ENDDO("enddo"),
+    INTTYPEID("int"),
+    FLOATTYPEID("float");
 
     public static final TokenType[] KEYWORDS = {
-        ARRAY, BREAK, DO, ELSE, FOR, FUNC, RETURN, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN, END, ENDDO
+        ARRAY, BREAK, DO, ELSE, FOR, FUNC, RETURN, IF, IN, LET, OF, THEN, TO, TYPE, VAR, WHILE, ENDIF, BEGIN,
+            END, ENDDO, INTTYPEID, FLOATTYPEID
     };
 
     private String pattern;

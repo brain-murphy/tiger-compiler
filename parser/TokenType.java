@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 public enum TokenType {
 
     ID("^[a-zA-Z][a-zA-Z0-9]*"),
-    INTLIT("^[1-9][0-9]*"),
-    FLOATLIT("^[0-9]*\\.?[0-9]*"),
+    INTLIT("^0|([1-9][0-9]*)"),
+    FLOATLIT("^0|([1-9][0-9]*)\\.[0-9]*"),
 
 
     COMMA(","),

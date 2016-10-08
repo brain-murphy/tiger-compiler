@@ -1,6 +1,6 @@
 package scanner;
 
-class Token {
+public class Token {
     private TokenType tokenType;
     private String text;
 

@@ -335,7 +335,7 @@ public class DirectScanner implements Scanner {
             if (charAt(scanningIndex) == '*' && charAt(scanningIndex + 1) == '/') {
                 advanceCursor(scanningIndex + COMMENT_CLOSE_LENGTH);
                 token();
-                
+
                 return;
             }
             scanningIndex = scanningIndex + 1;
