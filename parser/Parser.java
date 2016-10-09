@@ -1,4 +1,4 @@
-package parser;
+//package parser;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -17,8 +17,8 @@ public class Parser
     private HashMap<String, HashMap<String, Integer>> firstSet = new HashMap<String, HashMap<String, Integer>>(); //<NT, <T or NT, # of rules>>
     // After completing the construction of firstSet, there should be only T in the latter part
     private HashMap<String, HashMap<String, String>> followSet = new HashMap<String, HashMap<String, String>>();
-    //private ArrayList<String> listOfTokens = new ArrayList<String>();
-    private ArrayList<Token> listOfTokens = new ArrayList<Token>();
+    private ArrayList<String> listOfTokens = new ArrayList<String>();
+    //private ArrayList<Token> listOfTokens = new ArrayList<Token>();
     
 
     private void fill_listOfRules()
@@ -200,10 +200,15 @@ public class Parser
             if( followSet.containsKey( listOfRules.get(i).get(j) ) )
                 {
                 // The last symbol is a NT
-                followSet.get( listOfRules.get(i).get(j) ).put( listOfRules.get(i).get(0), listOfRules.get(i).get(0) );
-                // Do we need to do this in every iteration?
+                if( Objects.equals(listOfRules.get(i).get(j), listOfRules.get(i).get(0)) != true )
+                    {
+                    // Do NOT put the NT itself!! Right-recursive case
+                    followSet.get( listOfRules.get(i).get(j) ).put( listOfRules.get(i).get(0), listOfRules.get(i).get(0) );
+                    //System.out.println( "Applying rule " + i + ", "+ listOfRules.get(i).get(j) );
+                    //System.out.println( " +++ Put " + listOfRules.get(i).get(0) );
+                    }
                 }
-            while( j >= 1 )
+            while( j >= 2 )
                 {
                 if( followSet.containsKey( listOfRules.get(i).get(j-1) ) )
                     {
@@ -212,6 +217,7 @@ public class Parser
                     // Follow(j-1) = First(j) - NULL
                     if( followSet.containsKey( listOfRules.get(i).get(j) ) )
                         {
+                        // j is a NT
                         HashMap<String, Integer> tempMap = firstSet.get( listOfRules.get(i).get(j) );
                         for(String key : tempMap.keySet())
                             {
@@ -229,6 +235,16 @@ public class Parser
                     else
                         if( Objects.equals(listOfRules.get(i).get(j), "NULL") != true )
                             currentNTMap.put( listOfRules.get(i).get(j), listOfRules.get(i).get(j) );
+                    /*if( Objects.equals( listOfRules.get(i).get(j-1), "<id-list>") == true )
+                        {   
+                        System.out.println( "==" + listOfRules.get(i).get(j-1) );
+                        System.out.println( "=i" + i + ", j: " + j + ", " + listOfRules.get(i).get(j) );
+                        for(String key : currentNTMap.keySet())
+                            {
+                            System.out.println( key );
+                            }
+                        }*/
+                    
                     }
                 --j;
                 }
@@ -305,7 +321,7 @@ public class Parser
             {
             HashMap<String, Integer> currentRow = entry.getValue();
             String currentNT = entry.getKey();
-
+            //System.out.println( " - " + currentNT );
             HashMap<String, Integer> currentFirstSet = firstSet.get( currentNT );
             for (Map.Entry<String, Integer> entry_of_First_set : currentFirstSet.entrySet()) 
                 {
@@ -337,11 +353,12 @@ public class Parser
             }
         }
 
-    private void parsing()
+    /*private void parsing()
         {
         Stack<String> symbol_stack = new Stack<String>();
         int currentToken_idx = 0; // Use this variable as ptr for traversing through the list of tokens
-        TokenType currentTokenType; // Conversion between TokenType and String?
+        //TokenType currentTokenType; // Conversion between TokenType and String?
+        String currentTokenType;
         // Push the start symbol to the stack
         symbol_stack.push( listOfRules.get(0).get(0) );
         while( true )
@@ -401,7 +418,7 @@ public class Parser
                 }
             }
 
-        }
+        }*/
 
     public Parser() 
         {
