@@ -1,6 +1,5 @@
 package scanner;
 
-import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -8,10 +7,10 @@ import static org.junit.Assert.assertEquals;
 
 public class TestDirectScanner {
 
-    private static final String SAMPLE_PROGRAM_TEXT = "let\n" +
+    public static final String SAMPLE_PROGRAM_TEXT = "let\n" +
             " type ArrayInt = array [100] of int; \n" +
-            " var X, Y : ArrayInt = 10; \n" +
-            " var i, sum : int = 0; /* comment! */\n" +
+            " var X, Y : ArrayInt := 010; \n" +
+            " var i, sum : int := 0; /* comment! */\n" +
             "in\n" +
             " for i := 1 to 100 do \n" +
             " sum := sum + X[i] * Y[i];\n" +
@@ -39,7 +38,7 @@ public class TestDirectScanner {
         assertNextToken(TokenType.INTLIT);
         assertNextToken(TokenType.RBRACK);
         assertNextToken(TokenType.OF);
-        assertNextToken(TokenType.ID);
+        assertNextToken(TokenType.INTTYPEID);
         assertNextToken(TokenType.SEMI);
 
         assertNextToken(TokenType.VAR);
@@ -48,7 +47,7 @@ public class TestDirectScanner {
         assertNextToken(TokenType.ID);
         assertNextToken(TokenType.COLON);
         assertNextToken(TokenType.ID);
-        assertNextToken(TokenType.EQ);
+        assertNextToken(TokenType.ASSIGN);
         assertNextToken(TokenType.INTLIT);
         assertNextToken(TokenType.SEMI);
 
@@ -57,8 +56,8 @@ public class TestDirectScanner {
         assertNextToken(TokenType.COMMA);
         assertNextToken(TokenType.ID);
         assertNextToken(TokenType.COLON);
-        assertNextToken(TokenType.ID);
-        assertNextToken(TokenType.EQ);
+        assertNextToken(TokenType.INTTYPEID);
+        assertNextToken(TokenType.ASSIGN);
         assertNextToken(TokenType.INTLIT);
         assertNextToken(TokenType.SEMI);
 

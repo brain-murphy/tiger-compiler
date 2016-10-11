@@ -1,6 +1,10 @@
 package scanner;
 
-public enum TokenType {
+import parser.Symbol;
+
+public enum TokenType implements Symbol {
+
+    NULL(""),
 
     ID("^[a-zA-Z][a-zA-Z0-9]*"),
     INTLIT("^0|([1-9][0-9]*)"),
@@ -72,5 +76,4 @@ public enum TokenType {
     public int getPrecedence() {
         return ordinal();
     }
-
 }

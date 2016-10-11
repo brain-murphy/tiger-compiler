@@ -171,6 +171,9 @@ public class LexicalErrorFinder {
             case FLOATTYPEID:
                 return keyword(FLOATTYPEID);
 
+            case NULL:
+                return 0;
+
             default:
                 throw new RuntimeException("No lexical error finding for TokenType " + typeToMatch.name());
         }

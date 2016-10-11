@@ -34,6 +34,6 @@ public class Reader {
             e.printStackTrace();
         }
 
-        return stringBuilder.toString();
+        return stringBuilder.toString().trim();
     }
 }

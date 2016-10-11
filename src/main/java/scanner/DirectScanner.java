@@ -161,6 +161,13 @@ public class DirectScanner implements Scanner {
     private void integerOrFloatLiteral() {
         int scanningIndex = cursorPosition + 1;
 
+        //TODO deal with leading zeros with int lits and float lits
+//        if (charAt(cursorPosition) == '0') {
+//            if (Character.isDigit(charAt(scanningIndex))) {
+//                throw new RuntimeException("int literal cannot start with a zero.")
+//            }
+//        }
+
         while (hasNextChar(scanningIndex)) {
             char nextChar = charAt(scanningIndex);
 
