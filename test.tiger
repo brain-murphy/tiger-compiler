@@ -5,6 +5,6 @@ let
 in
  for i := 1 to 100 do
  sum := sum + X[i] * Y[i];
- enddo
+ enddo;
  printi(sum);
 end

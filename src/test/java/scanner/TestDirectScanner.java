@@ -14,7 +14,7 @@ public class TestDirectScanner {
             "in\n" +
             " for i := 1 to 100 do \n" +
             " sum := sum + X[i] * Y[i];\n" +
-            " enddo\n" +
+            " enddo;\n" +
             " printi(sum); \n" +
             "end";
 
@@ -86,6 +86,7 @@ public class TestDirectScanner {
         assertNextToken(TokenType.SEMI);
 
         assertNextToken(TokenType.ENDDO);
+        assertNextToken(TokenType.SEMI);
 
         assertNextToken(TokenType.ID);
         assertNextToken(TokenType.LPAREN);

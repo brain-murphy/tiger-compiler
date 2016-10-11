@@ -43,25 +43,31 @@ public class Rule {
                     new Rule(STAT_SEQ, STAT, STAT_SEQ_TAIL),
                     new Rule(STAT_SEQ_TAIL, NULL),
                     new Rule(STAT_SEQ_TAIL, STAT_SEQ),
+                    ////
+                    ////<stat> → id <LVALUE_TAIL> := <expr> ;
+					////<stat> → id( <expr­list> ) ;
+					////<stat> → id <LVALUE_TAIL> := id( <expr­list> ) ;
+					////
                     new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI),
                     new Rule(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
-                    new Rule(STAT, LVALUE, STAT_ID),
                     new Rule(STAT, BREAK, SEMI),
                     new Rule(STAT, RETURN, EXPR, SEMI),
                     new Rule(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END),
+
+                    new Rule(STAT, LVALUE, STAT_ID),
+                    new Rule(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
+
+                    new Rule(STAT_ID, ASSIGN, STAT_TAIL),
+                    new Rule(STAT_TAIL, EXPR, SEMI),
+//                    new Rule(STAT_TAIL, ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
+
+                    /*new Rule(STAT, LVALUE, STAT_ID),
                     new Rule(STAT_ID, ASSIGN, STAT_TAIL),
                     new Rule(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
-                    new Rule(STAT_TAIL, EXPR_HEAD, SEMI),
-                    new Rule(STAT_TAIL, ID, STAT_TAIL_ID),
-                    new Rule(STAT_TAIL_ID, EXPR_ID, SEMI),
-                    new Rule(STAT_TAIL_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
-                    new Rule(A_TERM_HEAD, B_TERM_HEAD, A_TERM_TAIL),
-                    new Rule(B_TERM_HEAD, C_TERM_HEAD, B_TERM_TAIL),
-                    new Rule(C_TERM_HEAD, CONST, C_TERM_TAIL),
-                    new Rule(C_TERM_HEAD, LPAREN, EXPR, RPAREN,C_TERM_TAIL),
-                    new Rule(EXPR_ID, LVALUE, EXPR_TAIL),
-                    new Rule(EXPR_HEAD, A_TERM_HEAD, EXPR_TAIL),
+                    new Rule(STAT_TAIL, EXPR, SEMI),
+                    new Rule(STAT_TAIL, ID, LPAREN, EXPR_LIST, RPAREN, SEMI),*/
+
                     new Rule(EXPR, A_TERM, EXPR_TAIL),
                     new Rule(EXPR_TAIL, AND, A_TERM),
                     new Rule(EXPR_TAIL, OR, A_TERM),
@@ -83,7 +89,7 @@ public class Rule {
                     new Rule(C_TERM_TAIL, DIV, FACTOR),
                     new Rule(C_TERM_TAIL, NULL),
                     new Rule(FACTOR, CONST),
-                    new Rule(FACTOR, ID, LVALUE),
+                    new Rule(FACTOR, LVALUE),
                     new Rule(FACTOR, LPAREN, EXPR, RPAREN),
                     new Rule(CONST, INTLIT),
                     new Rule(CONST, FLOATLIT),

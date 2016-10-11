@@ -70,7 +70,9 @@ public class Parser {
 
 
                 }
-                focus = symbol_stack.peek();
+                if (!symbol_stack.isEmpty()) {
+                    focus = symbol_stack.peek();
+                }
             }
 
         }
@@ -90,7 +92,9 @@ public class Parser {
             System.out.println(currentToken.getTokenType());
         }
         symbol_stack.pop();
-        currentToken = scanner.nextToken();
+        if (scanner.hasNextToken()) {
+            currentToken = scanner.nextToken();
+        }
     }
 
     private void handleError(List<TokenType> expectedTokens) {
