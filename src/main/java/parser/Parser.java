@@ -94,7 +94,10 @@ public class Parser {
     }
 
     private void handleError(List<TokenType> expectedTokens) {
-//        while ()
+
+        //TODO skip input to "error correct"
+
+        throwLexicalError(scanner.getLexicalError(currentToken, expectedTokens));
     }
 
     private void throwLexicalError(LexicalError error) {
