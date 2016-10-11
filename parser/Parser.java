@@ -67,12 +67,17 @@ public class Parser
             {"<stat>", "LET", "<declaration-segment>", "IN", "<stat-seq>", "END"},
             {"<stat-id>", "<lvalue>", "ASSIGN", "<stat-tail>"},
             {"<stat-id>", "LPAREN", "<expr­list>", "RPAREN", "SEMI"},
-            {"<stat-tail>", "<expr>", "SEMI"},
-            {"<stat-tail>", "ID", "LPAREN", "<expr­list>", "RPAREN", "SEMI"},
+            {"<stat-tail>", "<expr-head>", "SEMI"},
+            {"<stat-tail>", "ID", "<stat-tail-id>"},
+            {"<stat-tail-id>", "<expr-id>", "SEMI"},
+            {"<stat-tail-id>", "LPAREN", "<expr­list>", "RPAREN", "SEMI"},
+            {"<expr-id>", "<lvalue>", "<expr-tail>"},
+            {"<expr-head>", "<Aterm-head>", "<expr-tail>"},
             {"<expr>", "<Aterm>", "<expr-tail>"},
             {"<expr-tail>", "AND", "<Aterm>"},
             {"<expr-tail>", "OR", "<Aterm>"},
             {"<expr-tail>", "NULL"},
+            {"<Aterm-head>", "<Bterm-head>", "<Aterm-tail>"},
             {"<Aterm>", "<Bterm>", "<Aterm-tail>"},
             {"<Aterm-tail>", "EQ", "<Bterm>"},
             {"<Aterm-tail>", "NEQ", "<Bterm>"},
@@ -81,10 +86,13 @@ public class Parser
             {"<Aterm-tail>", "LESSEREQ", "<Bterm>"},
             {"<Aterm-tail>", "GREATEREQ", "<Bterm>"},
             {"<Aterm-tail>", "NULL"},
+            {"<Bterm-head>", "<Cterm-head>", "<Bterm-tail>"},
             {"<Bterm>", "<Cterm>", "<Bterm-tail>"},
             {"<Bterm-tail>", "PLUS", "<Cterm>"},
             {"<Bterm-tail>", "MINUS", "<Cterm>"},
             {"<Bterm-tail>", "NULL"},
+            {"<Cterm-head>", "<const>", "<Cterm-tail>"},
+            {"<Cterm-head>", "LPAREN", "<expr>", "RPAREN", "<Cterm-tail>"},
             {"<Cterm>", "<factor>", "<Cterm-tail>"},
             {"<Cterm-tail>", "MULT", "<factor>"},
             {"<Cterm-tail>", "DIV", "<factor>"},
@@ -353,6 +361,23 @@ public class Parser
             }
         }
 
+    private void print_parsingTable()
+        {
+        System.out.println("PARSING TABLE:");
+        for (Map.Entry<String, HashMap<String, Integer>> entry : parsingTable.entrySet()) 
+            {
+            HashMap<String, Integer> currentRow = entry.getValue();
+            String currentNT = entry.getKey();
+            System.out.println( currentNT + ":" );
+            for (Map.Entry<String, Integer> entryL2 : currentRow.entrySet())
+                {
+                System.out.print( "(" + entryL2.getKey() + "," + entryL2.getValue() + "), " );
+                }
+            System.out.println();   
+            System.out.println("===============");
+            }
+        }
+
     /*private void parsing()
         {
         Stack<String> symbol_stack = new Stack<String>();
@@ -428,6 +453,7 @@ public class Parser
         print_firstSet();
         compute_FollowSet();
         fill_parsingTable();
+        print_parsingTable();
         //parsing();
         //this.fileText = fileText;
         //scannedTokens = new ArrayList<>();
