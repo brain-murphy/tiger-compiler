@@ -46,11 +46,11 @@ public class Rule {
                     new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI),
                     new Rule(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
-                    new Rule(STAT, ID, STAT_ID),
+                    new Rule(STAT, LVALUE, STAT_ID),
                     new Rule(STAT, BREAK, SEMI),
                     new Rule(STAT, RETURN, EXPR, SEMI),
                     new Rule(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END),
-                    new Rule(STAT_ID, LVALUE, ASSIGN, STAT_TAIL),
+                    new Rule(STAT_ID, ASSIGN, STAT_TAIL),
                     new Rule(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
                     new Rule(STAT_TAIL, EXPR, SEMI),
                     new Rule(STAT_TAIL, ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
@@ -83,8 +83,9 @@ public class Rule {
                     new Rule(EXPR_LIST, EXPR, EXPR_LIST_TAIL),
                     new Rule(EXPR_LIST_TAIL, COMMA, EXPR, EXPR_LIST_TAIL),
                     new Rule(EXPR_LIST_TAIL, NULL),
-                    new Rule(LVALUE, NULL),
-                    new Rule(LVALUE, LBRACK, EXPR, RBRACK),
+                    new Rule(LVALUE, ID, LVALUE_TAIL),
+                    new Rule(LVALUE_TAIL, NULL),
+                    new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK),
             };
     private NonTerminal nonTerminalExpanded;
     private Symbol[] expansion;

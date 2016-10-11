@@ -36,5 +36,6 @@ public enum NonTerminal implements Symbol {
     EXPR_LIST,
     EXPR_HEAD,
     EXPR_LIST_TAIL,
-    LVALUE
+    LVALUE,
+    LVALUE_TAIL
 }
