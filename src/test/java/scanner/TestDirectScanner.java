@@ -9,11 +9,12 @@ public class TestDirectScanner {
 
     public static final String SAMPLE_PROGRAM_TEXT = "let\n" +
             " type ArrayInt = array [100] of int; \n" +
-            " var X, Y : ArrayInt := 010; \n" +
+            " var X, Y : ArrayInt := 10; \n" +
             " var i, sum : int := 0; /* comment! */\n" +
             "in\n" +
             " for i := 1 to 100 do \n" +
             " sum := sum + X[i] * Y[i];\n" +
+            " sum := myFunction();\n" +
             " enddo;\n" +
             " printi(sum); \n" +
             "end";

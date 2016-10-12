@@ -43,30 +43,27 @@ public class Rule {
                     new Rule(STAT_SEQ, STAT, STAT_SEQ_TAIL),
                     new Rule(STAT_SEQ_TAIL, NULL),
                     new Rule(STAT_SEQ_TAIL, STAT_SEQ),
-                    ////
-                    ////<stat> → id <LVALUE_TAIL> := <expr> ;
-					////<stat> → id( <expr­list> ) ;
-					////<stat> → id <LVALUE_TAIL> := id( <expr­list> ) ;
-					////
                     new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI),
                     new Rule(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, BREAK, SEMI),
                     new Rule(STAT, RETURN, EXPR, SEMI),
                     new Rule(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END),
-
                     new Rule(STAT, LVALUE, STAT_ID),
                     new Rule(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
 
-                    new Rule(STAT_ID, ASSIGN, STAT_TAIL),
-                    new Rule(STAT_TAIL, EXPR, SEMI),
-//                    new Rule(STAT_TAIL, ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
+                    new Rule(STAT_ID, ASSIGN, STAT_TAIL, SEMI),
+                    new Rule(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID),
+                    new Rule(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL),
 
-                    /*new Rule(STAT, LVALUE, STAT_ID),
-                    new Rule(STAT_ID, ASSIGN, STAT_TAIL),
-                    new Rule(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
-                    new Rule(STAT_TAIL, EXPR, SEMI),
-                    new Rule(STAT_TAIL, ID, LPAREN, EXPR_LIST, RPAREN, SEMI),*/
+                    new Rule(EXPR_NOT_STARTING_WITH_ID, NOT_ID_EXPR_START, C_TERM_TAIL, B_TERM_TAIL, A_TERM_TAIL, EXPR_TAIL),
+
+                    new Rule(NOT_ID_EXPR_START, CONST),
+                    new Rule(NOT_ID_EXPR_START, LPAREN, EXPR, RPAREN),
+
+                    new Rule(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN),
+                    new Rule(EXPR_OR_FUNC_TAIL, LVALUE_TAIL, C_TERM_TAIL, B_TERM_TAIL, A_TERM_TAIL, EXPR_TAIL),
+
 
                     new Rule(EXPR, A_TERM, EXPR_TAIL),
                     new Rule(EXPR_TAIL, AND, A_TERM),

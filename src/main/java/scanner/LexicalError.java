@@ -28,12 +28,12 @@ public class LexicalError {
     public String getReason(TokenType tokenType) {
         int indexOfError = lexicalErrorFinder.findIndexOfFirstError(tokenType);
         return "Expected " + tokenType.name() + " but could not match.\n" +
-                "\"" + problemString.substring(0, indexOfError) + " ^ " + problemString.substring(indexOfError) + "\"";
+                "\"" + problemString.substring(0, indexOfError) + problemString.substring(indexOfError) + "\"";
     }
 
     @Override
     public String toString() {
-        StringBuilder stringBuilder = new StringBuilder("Lexical Error: could not match expected token on line:" + getLineNumber() + "\n");
+        StringBuilder stringBuilder = new StringBuilder("Error: could not match expected token on line:" + getLineNumber() + "\n");
         for (TokenType tokenType : expectations) {
             stringBuilder
                     .append(getReason(tokenType))
