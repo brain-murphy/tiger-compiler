@@ -15,4 +15,5 @@ public class TestParsingTable {
 
         System.out.println(parser.parsingTable.toString());
     }
+
 }

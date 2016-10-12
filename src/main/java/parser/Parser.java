@@ -6,6 +6,7 @@ import scanner.Token;
 import scanner.TokenType;
 import static scanner.TokenType.NULL;
 
+import java.io.EOFException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
@@ -13,7 +14,9 @@ import java.util.Stack;
 public class Parser {
 
     private boolean debug = true;
-    private boolean errorCorrection;
+    private boolean errorCorrection = true;
+
+    private boolean didThrowError = false;
 
     ParsingTable parsingTable;
     private Scanner scanner;
@@ -34,7 +37,7 @@ public class Parser {
     public void parse() {
         symbol_stack = new Stack<>();
         // Conversion between TokenType and String?
-        currentToken = scanner.nextToken();
+        currentToken = getNextToken();
         // Push the start symbol to the stack
         symbol_stack.push(NonTerminal.TIGER_PROGRAM);
         Symbol focus = symbol_stack.peek();
@@ -42,7 +45,12 @@ public class Parser {
         {
             if(symbol_stack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
             {
-                System.out.println("successful parse");
+                System.out.println("End of parse.");
+
+                if (!didThrowError) {
+                    System.out.println("successful parse");
+                }
+
                 break;
             }
             else if( focus instanceof TokenType)
@@ -53,12 +61,13 @@ public class Parser {
                     acceptToken();
 
                 } else {
+                    didThrowError = true;
                     List<TokenType> expectedTokens = Collections.singletonList(terminal);
 
                     if (errorCorrection) {
                         correctError(expectedTokens);
                     } else {
-                        throwLexicalError(scanner.getLexicalError(currentToken, expectedTokens));
+                        throwError(scanner.getLexicalError(currentToken, expectedTokens));
                     }
 
                 }
@@ -69,13 +78,14 @@ public class Parser {
                 Rule ruleToExpandNonTerminal = parsingTable.getParsingRule(nonTerminal, currentToken.getTokenType());
 
                 if (ruleToExpandNonTerminal == null) {
+                    didThrowError = true;
                     List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(nonTerminal);
 
                     if (errorCorrection) {
                         correctError(expectedTokens);
                         ruleToExpandNonTerminal = parsingTable.getParsingRule(NonTerminal.STAT_SEQ_TAIL, currentToken.getTokenType());
                     } else {
-                        throwLexicalError(scanner.getLexicalError(currentToken, expectedTokens));
+                        throwError(scanner.getLexicalError(currentToken, expectedTokens));
                     }
                 }
 
@@ -107,7 +117,7 @@ public class Parser {
         }
         symbol_stack.pop();
         if (scanner.hasNextToken()) {
-            currentToken = scanner.nextToken();
+            currentToken = getNextToken();
         }
     }
 
@@ -123,7 +133,7 @@ public class Parser {
                 return;
             }
 
-            problemToken = scanner.nextToken();
+            problemToken = getNextToken();
         }
 
         acceptToken();
@@ -133,14 +143,27 @@ public class Parser {
     }
 
     private void restartParsingAtStatement() {
-        currentToken = scanner.nextToken();
+        currentToken = getNextToken();
 
         while (!symbol_stack.empty() && symbol_stack.peek() != NonTerminal.STAT_SEQ_TAIL) {
             symbol_stack.pop();
         }
     }
 
-    private void throwLexicalError(LexicalError error) {
+    private Token getNextToken() {
+        try {
+            return scanner.nextToken();
+        } catch (RuntimeException exception) {
+            if (exception.getCause() instanceof EOFException) {
+                throw exception;
+            } else {
+                exception.printStackTrace();
+                return getNextToken();
+            }
+        }
+    }
+
+    private void throwError(LexicalError error) {
         throw new RuntimeException(error.toString());
     }
 

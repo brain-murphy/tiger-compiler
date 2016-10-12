@@ -47,4 +47,10 @@ public enum NonTerminal implements Symbol {
     EXPR_NOT_STARTING_WITH_ID,
     EXPR_OR_FUNC_TAIL,
     NOT_ID_EXPR_START,
+
+    lexp,
+    atom,
+    list,
+    lexp_seq,
+    lexp_seq_tail
 }
