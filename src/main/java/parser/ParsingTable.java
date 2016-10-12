@@ -3,6 +3,7 @@ package parser;
 import org.jetbrains.annotations.NotNull;
 import scanner.TokenType;
 import util.Csv;
+import util.General;
 
 import static scanner.TokenType.NULL;
 
@@ -209,20 +210,11 @@ class ParsingTable {
             for (TokenType lookahead : possibleLookaheads) {
 
                 Rule ruleToUse = rules[augmentedFirstSets.get(focus).get(lookahead)];
-                csv.addRow(focus.name(), lookahead.name(), expansionToString(ruleToUse.getExpansion()));
+                csv.addRow(focus.name(), lookahead.name(), General.expansionToString(ruleToUse.getExpansion()));
             }
         }
 
         return csv.toString();
     }
 
-    private String expansionToString(Symbol[] expansion) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (Symbol symbol : expansion) {
-            stringBuilder.append(symbol.name())
-                        .append(' ');
-        }
-
-        return stringBuilder.toString().trim();
-    }
 }
