@@ -12,7 +12,7 @@ import java.util.Stack;
 
 public class Parser {
 
-    private boolean debug;
+    private boolean debug = true;
     private boolean errorCorrection;
 
     ParsingTable parsingTable;
