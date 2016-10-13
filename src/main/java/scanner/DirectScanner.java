@@ -113,9 +113,12 @@ public class DirectScanner implements Scanner {
                 acceptToken(cursorPosition + 1, TokenType.OR);
                 break;
             default:
+                int problemIndex = cursorPosition;
+                advanceCursor(cursorPosition + 1);
+
                 throw new LexicalException(nextChar + " is not a valid character in the Tiger language.\n" +
                         "See line " + getCursorLineNumber() + "\n" +
-                        fileText.substring(cursorPosition - 10, cursorPosition + 1) + "<--");
+                        fileText.substring(problemIndex - 10, problemIndex + 1) + "<--");
         }
     }
 

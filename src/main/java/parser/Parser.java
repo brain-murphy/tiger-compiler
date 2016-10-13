@@ -79,8 +79,8 @@ public class Parser {
                     List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(nonTerminal);
 
                     if (errorCorrection) {
-                        correctError(expectedTokens);
-                        ruleToExpandNonTerminal = parsingTable.getParsingRule(NonTerminal.STAT_SEQ_TAIL, currentToken.getTokenType());
+                        NonTerminal newFocus = correctError(nonTerminal);
+                        ruleToExpandNonTerminal = parsingTable.getParsingRule(newFocus, currentToken.getTokenType());
                     } else {
                         throwError(scanner.getLexicalError(currentToken, expectedTokens));
                     }
@@ -112,10 +112,36 @@ public class Parser {
         if (debug) {
             System.out.println(currentToken.getTokenType());
         }
-        symbol_stack.pop();
+        if (!symbol_stack.empty()) {
+            symbol_stack.pop();
+        }
         if (scanner.hasNextToken()) {
             currentToken = getNextToken();
         }
+    }
+
+    private NonTerminal correctError(NonTerminal focus) {
+        List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(focus);
+        Token problemToken = currentToken;
+
+        while (scanner.hasNextToken() && !expectedTokens.contains(problemToken.getTokenType())) {
+
+            printErrorRecoveryMessage(scanner.getLexicalError(problemToken, expectedTokens));
+
+            if (problemToken.getTokenType() == TokenType.SEMI) {
+                restartParsingAtStatement();
+                return NonTerminal.STAT_SEQ_TAIL;
+            }
+
+            problemToken = getNextToken();
+        }
+
+        currentToken = problemToken;
+
+        LexicalError lexicalError = scanner.getLexicalError(currentToken, expectedTokens);
+        printErrorRecoveryMessage(lexicalError);
+
+        return focus;
     }
 
     private void correctError(List<TokenType> expectedTokens) {
@@ -152,6 +178,7 @@ public class Parser {
             try {
                 return scanner.nextToken();
             } catch (LexicalException lexicalException) {
+                didThrowError = true;
                 System.out.println(lexicalException.getMessage());
             }
         }

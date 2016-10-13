@@ -180,12 +180,12 @@ public class LexicalErrorFinder {
     }
 
     private int keyword(TokenType tokenType) {
-        for (int i = 0; i < tokenType.getPattern().length(); i++) {
+        for (int i = 0; i < tokenType.getPattern().length() && i < problemString.length(); i++) {
             if (problemString.charAt(i) != tokenType.getPattern().charAt(i)) {
                 return i;
             }
         }
-        return tokenType.getPattern().length();
+        return Math.min(tokenType.getPattern().length(), problemString.length());
     }
 
     private int floatLiteral() {

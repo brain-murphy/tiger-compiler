@@ -4,6 +4,7 @@ import org.junit.Test;
 import scanner.DirectScanner;
 import scanner.Scanner;
 import scanner.TestDirectScanner;
+import util.Reader;
 
 public class TestParser {
     public static final String ERRONEOUS_SAMPLE_PROGRAM_TEXT = "let\n" +
@@ -22,7 +23,21 @@ public class TestParser {
         Scanner scanner = new DirectScanner(TestDirectScanner.SAMPLE_PROGRAM_TEXT);
 
         boolean debug = true;
-        boolean errorCorrection = false;
+        boolean errorCorrection = true;
+        Parser parser = new Parser(scanner, debug, errorCorrection);
+
+        parser.parse();
+    }
+
+    @Test
+    public void testParsingLongerProgram() {
+        Reader reader = new Reader();
+        String programText = reader.readFromFile("./examples/taTest.tiger");
+
+        Scanner scanner = new DirectScanner(programText);
+
+        boolean debug = true;
+        boolean errorCorrection = true;
         Parser parser = new Parser(scanner, debug, errorCorrection);
 
         parser.parse();
