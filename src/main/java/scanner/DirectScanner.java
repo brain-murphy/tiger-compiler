@@ -1,6 +1,5 @@
 package scanner;
 
-import java.io.EOFException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,7 +21,7 @@ public class DirectScanner implements Scanner {
     @Override
     public Token nextToken() {
         if (!hasNextToken()) {
-            throw new RuntimeException(new EOFException("End of file; no more tokens"));
+            throw new EOFException();
         }
 
         token();

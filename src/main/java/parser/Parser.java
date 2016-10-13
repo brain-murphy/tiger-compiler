@@ -1,12 +1,9 @@
 package parser;
 
-import scanner.LexicalError;
-import scanner.Scanner;
-import scanner.Token;
-import scanner.TokenType;
+import scanner.*;
+
 import static scanner.TokenType.NULL;
 
-import java.io.EOFException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
@@ -151,14 +148,13 @@ public class Parser {
     }
 
     private Token getNextToken() {
-        try {
-            return scanner.nextToken();
-        } catch (RuntimeException exception) {
-            if (exception.getCause() instanceof EOFException) {
-                throw exception;
-            } else {
+        while (true) {
+            try {
+                return scanner.nextToken();
+            } catch (EOFException eofException) {
+                throw eofException;
+            } catch (Exception exception) {
                 exception.printStackTrace();
-                return getNextToken();
             }
         }
     }

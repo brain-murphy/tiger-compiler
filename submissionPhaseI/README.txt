@@ -11,4 +11,3 @@ in question, and the second column holds its expansion.
 The parser table is in the file parseTable.csv, where the first column is the current non-terminal focus,
 and the second column represents the terminal lookahead. The third column contains the rule that should be
 used to expand the non-terminal.
-
