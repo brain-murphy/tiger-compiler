@@ -21,7 +21,7 @@ public class DirectScanner implements Scanner {
     @Override
     public Token nextToken() {
         if (!hasNextToken()) {
-            throw new EOFException();
+            throw new EofException();
         }
 
         token();
@@ -113,7 +113,7 @@ public class DirectScanner implements Scanner {
                 acceptToken(cursorPosition + 1, TokenType.OR);
                 break;
             default:
-                throw new RuntimeException(nextChar + " is not a valid character in the Tiger language.\n" +
+                throw new LexicalException(nextChar + " is not a valid character in the Tiger language.\n" +
                         "See line " + getCursorLineNumber() + "\n" +
                         fileText.substring(cursorPosition - 10, cursorPosition + 1) + "<--");
         }
@@ -163,7 +163,7 @@ public class DirectScanner implements Scanner {
 
         if (charAt(cursorPosition) == '0') {
             if (Character.isDigit(charAt(scanningIndex))) {
-                throw new RuntimeException("Lexical Error: int literal cannot start with a zero.");
+                throw new LexicalException("Lexical Error: int literal cannot start with a zero.");
             }
         }
 
@@ -347,6 +347,6 @@ public class DirectScanner implements Scanner {
             scanningIndex = scanningIndex + 1;
         }
 
-        throw new RuntimeException("File ended while comment was not closed.");
+        throw new LexicalException("File ended while comment was not closed.");
     }
 }

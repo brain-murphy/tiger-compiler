@@ -1,4 +1,4 @@
 package scanner;
 
-public class EOFException extends RuntimeException {
+public class EofException extends RuntimeException {
 }

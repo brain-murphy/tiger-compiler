@@ -151,10 +151,8 @@ public class Parser {
         while (true) {
             try {
                 return scanner.nextToken();
-            } catch (EOFException eofException) {
-                throw eofException;
-            } catch (Exception exception) {
-                exception.printStackTrace();
+            } catch (LexicalException lexicalException) {
+                System.out.println(lexicalException.getMessage());
             }
         }
     }
