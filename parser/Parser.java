@@ -61,23 +61,24 @@ public class Parser
             {"<stat>", "IF", "<expr>", "THEN", "<stat-seq>", "ELSE", "<stat-seq>", "ENDIF", "SEMI"},
             {"<stat>", "WHILE", "<expr>", "DO", "<stat-seq>", "ENDDO", "SEMI"},
             {"<stat>", "FOR", "ID", "ASSIGN", "<expr>", "TO", "<expr>", "DO", "<stat-seq>", "ENDDO", "SEMI"},
-            {"<stat>", "ID", "<stat-id>"},
             {"<stat>", "BREAK", "SEMI"},
             {"<stat>", "RETURN", "<expr>", "SEMI"},
             {"<stat>", "LET", "<declaration-segment>", "IN", "<stat-seq>", "END"},
-            {"<stat-id>", "<lvalue>", "ASSIGN", "<stat-tail>"},
-            {"<stat-id>", "LPAREN", "<expr­list>", "RPAREN", "SEMI"},
-            {"<stat-tail>", "<expr-head>", "SEMI"},
-            {"<stat-tail>", "ID", "<stat-tail-id>"},
-            {"<stat-tail-id>", "<expr-id>", "SEMI"},
-            {"<stat-tail-id>", "LPAREN", "<expr­list>", "RPAREN", "SEMI"},
-            {"<expr-id>", "<lvalue>", "<expr-tail>"},
-            {"<expr-head>", "<Aterm-head>", "<expr-tail>"},
+            {"<stat>", "<lvalue>", "<stat-id>"},
+            {"<stat-id>", "LPAREN", "<expr-list>", "RPAREN", "SEMI"},
+            {"<stat-id>", "ASSIGN", "<stat-tail>", "SEMI"},
+            {"<stat-tail>", "<expr_not_starting_with_id>"},
+            {"<stat-tail>", "ID", "<expr_not_starting_with_id>"},
+            {"<expr_not_starting_with_id>", "<not_id_expr_start>", "<Cterm-tail>", "<Bterm-tail>", "<Aterm-tail>", "<expr-tail>"},
+            {"<not_id_expr_start>", "CONST"},
+            {"<not_id_expr_start>", "LPAREN", "<expr>", "RPAREN"},
+            {"<expr_or_func_tail>", "LPAREN", "<expr-list>", "RPAREN"},
+            {"<expr_or_func_tail>", "<lvalue-tail>", "<Cterm-tail>", "<Bterm-tail>", "<Aterm-tail>", "<expr-tail>"},
+
             {"<expr>", "<Aterm>", "<expr-tail>"},
             {"<expr-tail>", "AND", "<Aterm>"},
             {"<expr-tail>", "OR", "<Aterm>"},
             {"<expr-tail>", "NULL"},
-            {"<Aterm-head>", "<Bterm-head>", "<Aterm-tail>"},
             {"<Aterm>", "<Bterm>", "<Aterm-tail>"},
             {"<Aterm-tail>", "EQ", "<Bterm>"},
             {"<Aterm-tail>", "NEQ", "<Bterm>"},
@@ -86,19 +87,16 @@ public class Parser
             {"<Aterm-tail>", "LESSEREQ", "<Bterm>"},
             {"<Aterm-tail>", "GREATEREQ", "<Bterm>"},
             {"<Aterm-tail>", "NULL"},
-            {"<Bterm-head>", "<Cterm-head>", "<Bterm-tail>"},
             {"<Bterm>", "<Cterm>", "<Bterm-tail>"},
             {"<Bterm-tail>", "PLUS", "<Cterm>"},
             {"<Bterm-tail>", "MINUS", "<Cterm>"},
             {"<Bterm-tail>", "NULL"},
-            {"<Cterm-head>", "<const>", "<Cterm-tail>"},
-            {"<Cterm-head>", "LPAREN", "<expr>", "RPAREN", "<Cterm-tail>"},
             {"<Cterm>", "<factor>", "<Cterm-tail>"},
             {"<Cterm-tail>", "MULT", "<factor>"},
             {"<Cterm-tail>", "DIV", "<factor>"},
             {"<Cterm-tail>", "NULL"},
             {"<factor>", "<const>"},
-            {"<factor>", "ID", "<lvalue>"},
+            {"<factor>", "<lvalue>"},
             {"<factor>", "LPAREN", "<expr>", "RPAREN"},
             {"<const>", "INTLIT"},
             {"<const>", "FLOATLIT"},
@@ -106,8 +104,9 @@ public class Parser
             {"<expr-list>", "<expr>", "<expr-list-tail>"},
             {"<expr-list-tail>", "COMMA", "<expr>", "<expr-list-tail>"},
             {"<expr-list-tail>", "NULL"},
-            {"<lvalue>", "NULL"},
-            {"<lvalue>", "LBRACK", "<expr>", "RBRACK"}
+            {"<lvalue>", "ID", "lvalue-tail"},
+            {"<lvalue-tail>", "NULL"},
+            {"<lvalue-tail>", "LBRACK", "<expr>", "RBRACK"}
             };
 
             for (int i = 0; i < arrayOfRules.length; i++) // Need the total number of rules
@@ -128,7 +127,7 @@ public class Parser
             if( parsingTable.containsKey( listOfRules.get(i).get(0) ) != true )
                 {
                 // a new NT
-                System.out.println(i);
+                //System.out.println(i);
                 HashMap<String, Integer> tempMap = new HashMap<String, Integer>();
                 HashMap<String, Integer> tempMap2 = new HashMap<String, Integer>();
                 HashMap<String, String> tempMap3 = new HashMap<String, String>();
@@ -262,7 +261,7 @@ public class Parser
         boolean setChangingFlag = true;
         while(setChangingFlag == true)
             {
-            System.out.println("==========================================");
+            //System.out.println("==========================================");
             setChangingFlag = false;
             for (Map.Entry<String, HashMap<String, String>> entry : followSet.entrySet()) 
                 {
@@ -271,11 +270,11 @@ public class Parser
                 ArrayList<String> expandedSymbolsList = new ArrayList<String>();
                 ArrayList<String> removedKeyList = new ArrayList<String>();
 
-                System.out.println( currentNT );
+                //System.out.println( currentNT );
 
                 for(String key : currentMap.keySet())
                     {
-                    System.out.print( key + ", ");
+                    //System.out.print( key + ", ");
                     if( followSet.containsKey( key ) )
                         {
                         setChangingFlag = true;
@@ -292,12 +291,12 @@ public class Parser
                             }
                         }
                     }
-                System.out.println();
+                //System.out.println();
                 for(int i = 0; i < expandedSymbolsList.size(); ++i)
                     {
                     currentMap.put( expandedSymbolsList.get(i), expandedSymbolsList.get(i) );
                     }
-                System.out.println();
+                //System.out.println();
                 for(int i = 0; i < removedKeyList.size(); ++i)
                     {
                     currentMap.remove( removedKeyList.get(i) );
@@ -361,8 +360,30 @@ public class Parser
             }
         }
 
+    private void printRules()
+        {
+        System.out.println( "Grammar Rules:" );
+        int i = 0;
+        while( i < listOfRules.size() )
+            {
+            System.out.print(i + ": ");
+            System.out.print( listOfRules.get(i).get(0) + " --> " );
+            int j = 1;
+            while( j < listOfRules.get(i).size() )
+                {
+                System.out.print( listOfRules.get(i).get(j) + " " );
+                ++j;
+                }
+            System.out.println();
+            ++i;
+            }
+        }
+
     private void print_parsingTable()
         {
+        System.out.println();
+        System.out.println();
+        System.out.println();
         System.out.println("PARSING TABLE:");
         for (Map.Entry<String, HashMap<String, Integer>> entry : parsingTable.entrySet()) 
             {
@@ -371,7 +392,7 @@ public class Parser
             System.out.println( currentNT + ":" );
             for (Map.Entry<String, Integer> entryL2 : currentRow.entrySet())
                 {
-                System.out.print( "(" + entryL2.getKey() + "," + entryL2.getValue() + "), " );
+                System.out.print( "(" + entryL2.getKey() + ", rule " + entryL2.getValue() + "), " );
                 }
             System.out.println();   
             System.out.println("===============");
@@ -449,8 +470,9 @@ public class Parser
         {
         fill_listOfRules();
         initialize_parsingTable();
+        printRules();
         compute_FirstSet();
-        print_firstSet();
+        //print_firstSet();
         compute_FollowSet();
         fill_parsingTable();
         print_parsingTable();
