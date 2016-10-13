@@ -5,6 +5,9 @@
 To view the code for the scanner and parser, you can clone it on github at this link:
 https://github.com/brain-murphy/tiger-compiler
 
+This repo also contains the code that we used to generate the first and follow sets.
+See /src/main/java/parser/ParsingTable.java
+
 The Hand-modified grammar is in the file grammarRules.csv. The first column contains the non-terminal
 in question, and the second column holds its expansion.
 
