@@ -1,6 +1,7 @@
 package parser;
 
 import scanner.TokenType;
+import util.General;
 
 import java.util.Arrays;
 
@@ -96,7 +97,7 @@ public class Rule {
                     new Rule(EXPR_LIST_TAIL, NULL),
                     new Rule(LVALUE, ID, LVALUE_TAIL),
                     new Rule(LVALUE_TAIL, NULL),
-                    new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK),
+                    new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
             };
     private NonTerminal nonTerminalExpanded;
     private Symbol[] expansion;
@@ -129,5 +130,10 @@ public class Rule {
 
         return getNonTerminalExpanded().equals(other.getNonTerminalExpanded()) &&
                 Arrays.equals(getExpansion(), other.getExpansion());
+    }
+
+    @Override
+    public String toString() {
+        return nonTerminalExpanded.name() + " := " + General.expansionToString(expansion);
     }
 }

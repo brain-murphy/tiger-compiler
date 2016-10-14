@@ -10,6 +10,11 @@ import util.General;
 public class TestParsingTable {
 
     @Test
+    public void testGrammarForAmbiguities() {
+        ParsingTable parsingTable = new ParsingTable(Rule.ALL_RULES, true);
+    }
+
+    @Test
     public void testPrintParsingTable() {
         Scanner scanner = new DirectScanner(TestDirectScanner.SAMPLE_PROGRAM_TEXT);
 
