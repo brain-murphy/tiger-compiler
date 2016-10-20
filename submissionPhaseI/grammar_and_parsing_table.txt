@@ -33,6 +33,25 @@ Grammar Rules:
 31: <stat> --> IF <expr> THEN <stat-seq> ELSE <stat-seq> ENDIF SEMI 
 32: <stat> --> WHILE <expr> DO <stat-seq> ENDDO SEMI 
 33: <stat> --> FOR ID ASSIGN <expr> TO <expr> DO <stat-seq> ENDDO SEMI 
+<<<<<<< HEAD
+34: <stat> --> BREAK SEMI 
+35: <stat> --> RETURN <expr> SEMI 
+36: <stat> --> LET <declaration-segment> IN <stat-seq> END 
+37: <stat> --> <lvalue> <stat-id> 
+38: <stat-id> --> LPAREN <expr-list> RPAREN SEMI 
+39: <stat-id> --> ASSIGN <stat-tail> SEMI 
+40: <stat-tail> --> <expr_not_starting_with_id> 
+41: <stat-tail> --> ID <expr_not_starting_with_id> 
+42: <expr_not_starting_with_id> --> <not_id_expr_start> <Cterm-tail> <Bterm-tail> <Aterm-tail> <expr-tail> 
+43: <not_id_expr_start> --> CONST 
+44: <not_id_expr_start> --> LPAREN <expr> RPAREN 
+45: <expr_or_func_tail> --> LPAREN <expr-list> RPAREN 
+46: <expr_or_func_tail> --> <lvalue-tail> <Cterm-tail> <Bterm-tail> <Aterm-tail> <expr-tail> 
+47: <expr> --> <Aterm> <expr-tail> 
+48: <expr-tail> --> AND <Aterm> 
+49: <expr-tail> --> OR <Aterm> 
+50: <expr-tail> --> NULL 
+=======
 34: <stat> --> ID <stat-id> 
 35: <stat> --> BREAK SEMI 
 36: <stat> --> RETURN <expr> SEMI 
@@ -50,6 +69,7 @@ Grammar Rules:
 48: <expr-tail> --> OR <Aterm> 
 49: <expr-tail> --> NULL 
 50: <Aterm-head> --> <Bterm-head> <Aterm-tail> 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 51: <Aterm> --> <Bterm> <Aterm-tail> 
 52: <Aterm-tail> --> EQ <Bterm> 
 53: <Aterm-tail> --> NEQ <Bterm> 
@@ -58,6 +78,28 @@ Grammar Rules:
 56: <Aterm-tail> --> LESSEREQ <Bterm> 
 57: <Aterm-tail> --> GREATEREQ <Bterm> 
 58: <Aterm-tail> --> NULL 
+<<<<<<< HEAD
+59: <Bterm> --> <Cterm> <Bterm-tail> 
+60: <Bterm-tail> --> PLUS <Cterm> 
+61: <Bterm-tail> --> MINUS <Cterm> 
+62: <Bterm-tail> --> NULL 
+63: <Cterm> --> <factor> <Cterm-tail> 
+64: <Cterm-tail> --> MULT <factor> 
+65: <Cterm-tail> --> DIV <factor> 
+66: <Cterm-tail> --> NULL 
+67: <factor> --> <const> 
+68: <factor> --> <lvalue> 
+69: <factor> --> LPAREN <expr> RPAREN 
+70: <const> --> INTLIT 
+71: <const> --> FLOATLIT 
+72: <expr-list> --> NULL 
+73: <expr-list> --> <expr> <expr-list-tail> 
+74: <expr-list-tail> --> COMMA <expr> <expr-list-tail> 
+75: <expr-list-tail> --> NULL 
+76: <lvalue> --> ID lvalue-tail 
+77: <lvalue-tail> --> NULL 
+78: <lvalue-tail> --> LBRACK <expr> RBRACK 
+=======
 59: <Bterm-head> --> <Cterm-head> <Bterm-tail> 
 60: <Bterm> --> <Cterm> <Bterm-tail> 
 61: <Bterm-tail> --> PLUS <Cterm> 
@@ -80,12 +122,17 @@ Grammar Rules:
 78: <expr-list-tail> --> NULL 
 79: <lvalue> --> NULL 
 80: <lvalue> --> LBRACK <expr> RBRACK 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 
 
 
 PARSING TABLE:
 <expr-tail>:
+<<<<<<< HEAD
+(RBRACK, rule 50), (RPAREN, rule 50), (DO, rule 50), (THEN, rule 50), (TO, rule 50), (AND, rule 48), (COMMA, rule 50), (SEMI, rule 50), (OR, rule 49), 
+=======
 (RBRACK, rule 49), (RPAREN, rule 49), (DO, rule 49), (THEN, rule 49), (TO, rule 49), (AND, rule 47), (COMMA, rule 49), (SEMI, rule 49), (OR, rule 48), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <param>:
 (ID, rule 27), 
@@ -93,10 +140,28 @@ PARSING TABLE:
 <id-list>:
 (ID, rule 15), 
 ===============
+<<<<<<< HEAD
+<not_id_expr_start>:
+(CONST, rule 43), (LPAREN, rule 44), 
+===============
+=======
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 <type>:
 (FLOAT, rule 9), (INT, rule 9), (ID, rule 11), (ARRAY, rule 10), 
 ===============
 <Bterm>:
+<<<<<<< HEAD
+(INTLIT, rule 59), (FLOATLIT, rule 59), (ID, rule 59), (LPAREN, rule 59), 
+===============
+<expr_not_starting_with_id>:
+(CONST, rule 42), (LPAREN, rule 42), 
+===============
+<stat-tail>:
+(ID, rule 41), (CONST, rule 40), (LPAREN, rule 40), 
+===============
+<expr_or_func_tail>:
+(LBRACK, rule 46), (LPAREN, rule 45), 
+=======
 (INTLIT, rule 60), (FLOATLIT, rule 60), (ID, rule 60), (LPAREN, rule 60), 
 ===============
 <expr-id>:
@@ -104,18 +169,27 @@ PARSING TABLE:
 ===============
 <stat-tail>:
 (INTLIT, rule 40), (ID, rule 41), (FLOATLIT, rule 40), (LPAREN, rule 40), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <stat-seq-tail>:
 (ENDIF, rule 29), (FOR, rule 30), (ENDDO, rule 29), (WHILE, rule 30), (END, rule 29), (ID, rule 30), (BREAK, rule 30), (LET, rule 30), (IF, rule 30), (ELSE, rule 29), (RETURN, rule 30), 
 ===============
 <const>:
+<<<<<<< HEAD
+(INTLIT, rule 70), (FLOATLIT, rule 71), 
+=======
 (INTLIT, rule 73), (FLOATLIT, rule 74), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <type-declaration-list>:
 (VAR, rule 2), (IN, rule 2), (TYPE, rule 3), 
 ===============
 <Cterm>:
+<<<<<<< HEAD
+(INTLIT, rule 63), (ID, rule 63), (FLOATLIT, rule 63), (LPAREN, rule 63), 
+=======
 (INTLIT, rule 66), (ID, rule 66), (FLOATLIT, rule 66), (LPAREN, rule 66), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <param-list>:
 (RPAREN, rule 21), (ID, rule 22), 
@@ -124,10 +198,17 @@ PARSING TABLE:
 (RPAREN, rule 23), (COMMA, rule 24), 
 ===============
 <Bterm-tail>:
+<<<<<<< HEAD
+(RBRACK, rule 62), (RPAREN, rule 62), (GREATER, rule 62), (LESSER, rule 62), (NEQ, rule 62), (THEN, rule 62), (TO, rule 62), (COMMA, rule 62), (OR, rule 62), (DO, rule 62), (PLUS, rule 60), (LESSEREQ, rule 62), (EQ, rule 62), (MINUS, rule 61), (AND, rule 62), (SEMI, rule 62), (GREATEREQ, rule 62), 
+===============
+<factor>:
+(INTLIT, rule 67), (ID, rule 68), (FLOATLIT, rule 67), (LPAREN, rule 69), 
+=======
 (RBRACK, rule 63), (RPAREN, rule 63), (NEQ, rule 63), (LESSER, rule 63), (GREATER, rule 63), (THEN, rule 63), (TO, rule 63), (COMMA, rule 63), (OR, rule 63), (DO, rule 63), (PLUS, rule 61), (LESSEREQ, rule 63), (EQ, rule 63), (MINUS, rule 62), (AND, rule 63), (SEMI, rule 63), (GREATEREQ, rule 63), 
 ===============
 <factor>:
 (INTLIT, rule 70), (ID, rule 71), (FLOATLIT, rule 70), (LPAREN, rule 72), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <funct-declaration>:
 (FUNC, rule 20), 
@@ -136,6 +217,12 @@ PARSING TABLE:
 (SEMI, rule 18), (ASSIGN, rule 19), 
 ===============
 <stat>:
+<<<<<<< HEAD
+(FOR, rule 33), (WHILE, rule 32), (ID, rule 37), (BREAK, rule 34), (LET, rule 36), (IF, rule 31), (RETURN, rule 35), 
+===============
+<Cterm-tail>:
+(RBRACK, rule 66), (RPAREN, rule 66), (GREATER, rule 66), (LESSER, rule 66), (NEQ, rule 66), (THEN, rule 66), (TO, rule 66), (COMMA, rule 66), (OR, rule 66), (DO, rule 66), (PLUS, rule 66), (LESSEREQ, rule 66), (MINUS, rule 66), (EQ, rule 66), (DIV, rule 65), (MULT, rule 64), (AND, rule 66), (SEMI, rule 66), (GREATEREQ, rule 66), 
+=======
 (FOR, rule 33), (WHILE, rule 32), (ID, rule 34), (BREAK, rule 35), (LET, rule 37), (IF, rule 31), (RETURN, rule 36), 
 ===============
 <Cterm-tail>:
@@ -143,15 +230,21 @@ PARSING TABLE:
 ===============
 <Cterm-head>:
 (INTLIT, rule 64), (FLOATLIT, rule 64), (LPAREN, rule 65), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <Aterm>:
 (INTLIT, rule 51), (FLOATLIT, rule 51), (ID, rule 51), (LPAREN, rule 51), 
 ===============
+<<<<<<< HEAD
+<Aterm-tail>:
+(RBRACK, rule 58), (RPAREN, rule 58), (DO, rule 58), (NEQ, rule 53), (LESSER, rule 54), (GREATER, rule 55), (THEN, rule 58), (LESSEREQ, rule 56), (EQ, rule 52), (AND, rule 58), (TO, rule 58), (COMMA, rule 58), (SEMI, rule 58), (OR, rule 58), (GREATEREQ, rule 57), 
+=======
 <Aterm-head>:
 (INTLIT, rule 50), (FLOATLIT, rule 50), (LPAREN, rule 50), 
 ===============
 <Aterm-tail>:
 (RBRACK, rule 58), (RPAREN, rule 58), (DO, rule 58), (NEQ, rule 53), (LESSER, rule 54), (GREATER, rule 55), (THEN, rule 58), (LESSEREQ, rule 56), (EQ, rule 52), (TO, rule 58), (AND, rule 58), (COMMA, rule 58), (SEMI, rule 58), (OR, rule 58), (GREATEREQ, rule 57), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <var-declaration-list>:
 (VAR, rule 5), (IN, rule 4), (FUNC, rule 4), 
@@ -166,6 +259,12 @@ PARSING TABLE:
 (VAR, rule 14), 
 ===============
 <lvalue>:
+<<<<<<< HEAD
+(ID, rule 76), 
+===============
+<lvalue-tail>:
+(LBRACK, rule 78), (DIV, rule 77), (MULT, rule 77), 
+=======
 (RBRACK, rule 79), (RPAREN, rule 79), (LBRACK, rule 80), (GREATER, rule 79), (LESSER, rule 79), (NEQ, rule 79), (THEN, rule 79), (TO, rule 79), (COMMA, rule 79), (OR, rule 79), (ASSIGN, rule 79), (DO, rule 79), (PLUS, rule 79), (LESSEREQ, rule 79), (MINUS, rule 79), (EQ, rule 79), (DIV, rule 79), (MULT, rule 79), (AND, rule 79), (SEMI, rule 79), (GREATEREQ, rule 79), 
 ===============
 <stat-tail-id>:
@@ -173,6 +272,7 @@ PARSING TABLE:
 ===============
 <expr-head>:
 (INTLIT, rule 45), (FLOATLIT, rule 45), (LPAREN, rule 45), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <tiger-program>:
 (LET, rule 0), 
@@ -190,6 +290,18 @@ PARSING TABLE:
 (INT, rule 12), (FLOAT, rule 13), 
 ===============
 <expr-list>:
+<<<<<<< HEAD
+(RPAREN, rule 72), (INTLIT, rule 73), (ID, rule 73), (FLOATLIT, rule 73), (LPAREN, rule 73), 
+===============
+<expr>:
+(INTLIT, rule 47), (FLOATLIT, rule 47), (ID, rule 47), (LPAREN, rule 47), 
+===============
+<stat-id>:
+(LPAREN, rule 38), (ASSIGN, rule 39), 
+===============
+<expr-list-tail>:
+(RPAREN, rule 75), (COMMA, rule 74), 
+=======
 (INTLIT, rule 76), (ID, rule 76), (FLOATLIT, rule 76), (LPAREN, rule 76), 
 ===============
 <Bterm-head>:
@@ -203,6 +315,7 @@ PARSING TABLE:
 ===============
 <expr-list-tail>:
 (COMMA, rule 77), 
+>>>>>>> f99d79c3fcbccdbfab0226fc3ec46eeb8f04a496
 ===============
 <id-list-tail>:
 (COLON, rule 17), (COMMA, rule 16), 
