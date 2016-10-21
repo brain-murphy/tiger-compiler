@@ -25,7 +25,7 @@ public class TestParsingTable {
 
     @Test
     public void printRules() {
-        Csv csv = new Csv("Symbol", "Expansion");
+        Csv csv = new Csv("GrammarSymbol", "Expansion");
 
         for (Rule rule : Rule.ALL_RULES) {
             csv.addRow(rule.getNonTerminalExpanded().name(), General.expansionToString(rule.getExpansion()));

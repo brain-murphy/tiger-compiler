@@ -16,9 +16,9 @@ class ParsingTable {
     private boolean shouldCheckForAmbiguities;
 
     private Rule[] rules;
-    private Map<Symbol, Map<TokenType, Integer>> firstSets;
-    private Map<Symbol, Map<TokenType, Integer>> followSets;
-    private Map<Symbol, Map<TokenType, Integer>> augmentedFirstSets;
+    private Map<GrammarSymbol, Map<TokenType, Integer>> firstSets;
+    private Map<GrammarSymbol, Map<TokenType, Integer>> followSets;
+    private Map<GrammarSymbol, Map<TokenType, Integer>> augmentedFirstSets;
 
     ParsingTable(Rule[] rules) {
         this(rules, false);
@@ -65,13 +65,13 @@ class ParsingTable {
         }
     }
 
-    private void addEmptySetsForNonTerminals(Map<Symbol, Map<TokenType, Integer>> set) {
+    private void addEmptySetsForNonTerminals(Map<GrammarSymbol, Map<TokenType, Integer>> set) {
         for (NonTerminal nonTerminal : NonTerminal.values()) {
             set.put(nonTerminal, new HashMap<>());
         }
     }
 
-    private void computeFirstSetsForTerminals(Map<Symbol, Map<TokenType, Integer>> firstSets) {
+    private void computeFirstSetsForTerminals(Map<GrammarSymbol, Map<TokenType, Integer>> firstSets) {
         for (TokenType terminal : TokenType.values()) {
 
             Map<TokenType, Integer> firstSetForTerminal = new HashMap<>();
@@ -87,7 +87,7 @@ class ParsingTable {
 
         Map<TokenType, Integer> newFirstSet = new HashMap<>();
 
-        Symbol[] expansion = rule.getExpansion();
+        GrammarSymbol[] expansion = rule.getExpansion();
 
         int expansionSymbolIndex = 0;
         Set<TokenType> firstSetOfExpansionSymbol = null;
@@ -122,8 +122,8 @@ class ParsingTable {
         }
     }
 
-    private Set<TokenType> getCurrentFirstSet(Symbol symbol) {
-        return firstSets.get(symbol).keySet();
+    private Set<TokenType> getCurrentFirstSet(GrammarSymbol grammarSymbol) {
+        return firstSets.get(grammarSymbol).keySet();
     }
 
     private void computeFollowSets() {
@@ -138,7 +138,7 @@ class ParsingTable {
 
                 Map<TokenType, Integer> trailer = new HashMap<>(getCurrentFollowSet(rule.getNonTerminalExpanded()));
 
-                Symbol[] expansion = rule.getExpansion();
+                GrammarSymbol[] expansion = rule.getExpansion();
                 for (int expansionSymbolIndex = expansion.length - 1; expansionSymbolIndex >= 0; expansionSymbolIndex--) {
 
                     if (expansion[expansionSymbolIndex] instanceof NonTerminal) {
@@ -240,7 +240,7 @@ class ParsingTable {
     public String toString() {
         Csv csv = new Csv("focus", "lookahead", "ruleToUse");
 
-        for (Symbol focus : augmentedFirstSets.keySet()) {
+        for (GrammarSymbol focus : augmentedFirstSets.keySet()) {
 
             Set<TokenType> possibleLookaheads = augmentedFirstSets.get(focus).keySet();
             for (TokenType lookahead : possibleLookaheads) {

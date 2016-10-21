@@ -268,7 +268,7 @@ public class DirectScanner implements Scanner {
 
     private void acceptToken(int delimitingCharacter, TokenType tokenType) {
         String tokenText = fileText.substring(cursorPosition, delimitingCharacter);
-        scannedTokens.add(new Token(tokenType, tokenText));
+        scannedTokens.add(new Token(tokenType, tokenText, cursorPosition));
 
         advanceCursor(delimitingCharacter);
     }

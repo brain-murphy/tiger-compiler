@@ -1,5 +1,5 @@
 package parser;
 
-public interface Symbol {
+public interface GrammarSymbol {
 	String name();
 }

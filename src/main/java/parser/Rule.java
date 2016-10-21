@@ -100,9 +100,9 @@ public class Rule {
                     new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
             };
     private NonTerminal nonTerminalExpanded;
-    private Symbol[] expansion;
+    private GrammarSymbol[] expansion;
 
-    Rule(NonTerminal nonTerminalExpanded, Symbol... expansion) {
+    Rule(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
         this.nonTerminalExpanded = nonTerminalExpanded;
         this.expansion = expansion;
     }
@@ -111,7 +111,7 @@ public class Rule {
         return nonTerminalExpanded;
     }
 
-    public Symbol[] getExpansion() {
+    public GrammarSymbol[] getExpansion() {
         return expansion;
     }
 

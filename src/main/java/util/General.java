@@ -1,6 +1,6 @@
 package util;
 
-import parser.Symbol;
+import parser.GrammarSymbol;
 
 public class General {
     public static <T> int arrayHash(T[] array) {
@@ -13,10 +13,10 @@ public class General {
         return hash;
     }
 
-    public static String expansionToString(Symbol[] expansion) {
+    public static String expansionToString(GrammarSymbol[] expansion) {
         StringBuilder stringBuilder = new StringBuilder();
-        for (Symbol symbol : expansion) {
-            stringBuilder.append(symbol.name())
+        for (GrammarSymbol grammarSymbol : expansion) {
+            stringBuilder.append(grammarSymbol.name())
                         .append(' ');
         }
 

@@ -1,6 +1,6 @@
 package parser;
 
-public enum NonTerminal implements Symbol {
+public enum NonTerminal implements GrammarSymbol {
     TIGER_PROGRAM,
     DECLARATION_SEGMENT,
     TYPE_DECLARATION_LIST,
