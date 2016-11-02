@@ -1,8 +1,8 @@
 package scanner;
 
-import parser.Symbol;
+import parser.GrammarSymbol;
 
-public enum TokenType implements Symbol {
+public enum TokenType implements GrammarSymbol {
 
     NULL(""),
 

@@ -18,7 +18,7 @@ public class Parser {
     ParsingTable parsingTable;
     private Scanner scanner;
     private Token currentToken;
-    private Stack<Symbol> symbol_stack;
+    private Stack<GrammarSymbol> symbol_stack;
 
     public Parser(Scanner scanner) {
         parsingTable = new ParsingTable(Rule.ALL_RULES);
@@ -37,7 +37,7 @@ public class Parser {
         currentToken = getNextToken();
         // Push the start symbol to the stack
         symbol_stack.push(NonTerminal.TIGER_PROGRAM);
-        Symbol focus = symbol_stack.peek();
+        GrammarSymbol focus = symbol_stack.peek();
         while( true )
         {
             if(symbol_stack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
@@ -99,7 +99,7 @@ public class Parser {
     }
 
     private void pushExpansionToSymbolStack(Rule ruleToExpandNonTerminal) {
-        Symbol[] expansion = ruleToExpandNonTerminal.getExpansion();
+        GrammarSymbol[] expansion = ruleToExpandNonTerminal.getExpansion();
 
         for (int expansionIndex = expansion.length - 1; expansionIndex >= 0; expansionIndex--) {
             if (expansion[expansionIndex] != NULL) {

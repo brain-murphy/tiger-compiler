@@ -11,14 +11,21 @@ import java.util.*;
 
 class ParsingTable {
 
-    public static final int NO_RULE_FOR_TERMINAL = -1;
+    private static final int NO_RULE_FOR_TERMINAL = -1;
+
+    private boolean shouldCheckForAmbiguities;
 
     private Rule[] rules;
-    private Map<Symbol, Map<TokenType, Integer>> firstSets;
-    private Map<Symbol, Map<TokenType, Integer>> followSets;
-    private Map<Symbol, Map<TokenType, Integer>> augmentedFirstSets;
+    private Map<GrammarSymbol, Map<TokenType, Integer>> firstSets;
+    private Map<GrammarSymbol, Map<TokenType, Integer>> followSets;
+    private Map<GrammarSymbol, Map<TokenType, Integer>> augmentedFirstSets;
 
     ParsingTable(Rule[] rules) {
+        this(rules, false);
+    }
+
+    ParsingTable(Rule[] rules, boolean shouldCheckForAmbiguities) {
+        this.shouldCheckForAmbiguities = shouldCheckForAmbiguities;
         this.rules = rules;
 
         computeFirstSets();
@@ -43,6 +50,10 @@ class ParsingTable {
                 Set<TokenType> oldFirstSet = getCurrentFirstSet(rule.getNonTerminalExpanded());
 
                 for (TokenType terminal : newFirstSet.keySet()) {
+                    if (shouldCheckForAmbiguities) {
+                        checkForAmbiguities(ruleIndex, firstSets.get(rule.getNonTerminalExpanded()), terminal);
+                    }
+
                     if (!oldFirstSet.contains(terminal)) {
                         firstSetsAreChanging = true;
                     }
@@ -54,13 +65,13 @@ class ParsingTable {
         }
     }
 
-    private void addEmptySetsForNonTerminals(Map<Symbol, Map<TokenType, Integer>> set) {
+    private void addEmptySetsForNonTerminals(Map<GrammarSymbol, Map<TokenType, Integer>> set) {
         for (NonTerminal nonTerminal : NonTerminal.values()) {
             set.put(nonTerminal, new HashMap<>());
         }
     }
 
-    private void computeFirstSetsForTerminals(Map<Symbol, Map<TokenType, Integer>> firstSets) {
+    private void computeFirstSetsForTerminals(Map<GrammarSymbol, Map<TokenType, Integer>> firstSets) {
         for (TokenType terminal : TokenType.values()) {
 
             Map<TokenType, Integer> firstSetForTerminal = new HashMap<>();
@@ -76,7 +87,7 @@ class ParsingTable {
 
         Map<TokenType, Integer> newFirstSet = new HashMap<>();
 
-        Symbol[] expansion = rule.getExpansion();
+        GrammarSymbol[] expansion = rule.getExpansion();
 
         int expansionSymbolIndex = 0;
         Set<TokenType> firstSetOfExpansionSymbol = null;
@@ -85,6 +96,10 @@ class ParsingTable {
             firstSetOfExpansionSymbol = getCurrentFirstSet(expansion[expansionSymbolIndex]);
 
             for (TokenType terminal : firstSetOfExpansionSymbol) {
+                if (shouldCheckForAmbiguities) {
+                    checkForAmbiguities(ruleIndex, newFirstSet, terminal);
+                }
+
                 newFirstSet.put(terminal, ruleIndex);
             }
 
@@ -99,8 +114,16 @@ class ParsingTable {
         return newFirstSet;
     }
 
-    private Set<TokenType> getCurrentFirstSet(Symbol symbol) {
-        return firstSets.get(symbol).keySet();
+    private void checkForAmbiguities(int newRuleIndex, Map<TokenType, Integer> oldFirstSet, TokenType lookahead) {
+        boolean isAmbiguous = oldFirstSet.containsKey(lookahead) && oldFirstSet.get(lookahead) != newRuleIndex;
+        if (isAmbiguous) {
+            Rule[] ambiguousRules = new Rule[]{rules[newRuleIndex], rules[oldFirstSet.get(lookahead)]};
+            throw new AmbiguousGrammarException(ambiguousRules, lookahead);
+        }
+    }
+
+    private Set<TokenType> getCurrentFirstSet(GrammarSymbol grammarSymbol) {
+        return firstSets.get(grammarSymbol).keySet();
     }
 
     private void computeFollowSets() {
@@ -115,7 +138,7 @@ class ParsingTable {
 
                 Map<TokenType, Integer> trailer = new HashMap<>(getCurrentFollowSet(rule.getNonTerminalExpanded()));
 
-                Symbol[] expansion = rule.getExpansion();
+                GrammarSymbol[] expansion = rule.getExpansion();
                 for (int expansionSymbolIndex = expansion.length - 1; expansionSymbolIndex >= 0; expansionSymbolIndex--) {
 
                     if (expansion[expansionSymbolIndex] instanceof NonTerminal) {
@@ -174,16 +197,29 @@ class ParsingTable {
 
         for (NonTerminal nonTerminal : NonTerminal.values()) {
             Map<TokenType, Integer> firstSet = firstSets.get(nonTerminal);
+            Map<TokenType, Integer> augmentedFirstSet = augmentedFirstSets.get(nonTerminal);
 
-            augmentedFirstSets.get(nonTerminal).putAll(firstSet);
+            augmentedFirstSet.putAll(firstSet);
 
             if (firstSet.containsKey(NULL)) {
-                augmentedFirstSets.get(nonTerminal).putAll(followSets.get(nonTerminal));
+                Map<TokenType, Integer> followSet = followSets.get(nonTerminal);
+
+                if (shouldCheckForAmbiguities) {
+                    checkFirstAndFollowSetAmbiguities(firstSet, followSet);
+                }
+                augmentedFirstSet.putAll(followSet);
             }
         }
 
         firstSets = null;
         followSets = null;
+    }
+
+    private void checkFirstAndFollowSetAmbiguities(Map<TokenType, Integer> firstSet, Map<TokenType, Integer> followSet) {
+        for (TokenType lookahead : followSet.keySet()) {
+            Integer nullableRuleIndex = followSet.get(lookahead);
+            checkForAmbiguities(nullableRuleIndex, firstSet, lookahead);
+        }
     }
 
     public Rule getParsingRule(NonTerminal focus, TokenType lookahead) {
@@ -204,7 +240,7 @@ class ParsingTable {
     public String toString() {
         Csv csv = new Csv("focus", "lookahead", "ruleToUse");
 
-        for (Symbol focus : augmentedFirstSets.keySet()) {
+        for (GrammarSymbol focus : augmentedFirstSets.keySet()) {
 
             Set<TokenType> possibleLookaheads = augmentedFirstSets.get(focus).keySet();
             for (TokenType lookahead : possibleLookaheads) {

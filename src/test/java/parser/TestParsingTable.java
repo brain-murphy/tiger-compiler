@@ -10,6 +10,11 @@ import util.General;
 public class TestParsingTable {
 
     @Test
+    public void testGrammarForAmbiguities() {
+        ParsingTable parsingTable = new ParsingTable(Rule.ALL_RULES, true);
+    }
+
+    @Test
     public void testPrintParsingTable() {
         Scanner scanner = new DirectScanner(TestDirectScanner.SAMPLE_PROGRAM_TEXT);
 
@@ -20,7 +25,7 @@ public class TestParsingTable {
 
     @Test
     public void printRules() {
-        Csv csv = new Csv("Symbol", "Expansion");
+        Csv csv = new Csv("GrammarSymbol", "Expansion");
 
         for (Rule rule : Rule.ALL_RULES) {
             csv.addRow(rule.getNonTerminalExpanded().name(), General.expansionToString(rule.getExpansion()));
