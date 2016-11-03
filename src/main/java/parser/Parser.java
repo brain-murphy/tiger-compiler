@@ -18,7 +18,7 @@ public class Parser {
     ParsingTable parsingTable;
     private Scanner scanner;
     private Token currentToken;
-    private Stack<GrammarSymbol> symbol_stack;
+    private Stack<GrammarSymbol> symbolStack;
 
     public Parser(Scanner scanner) {
         parsingTable = new ParsingTable(Rule.ALL_RULES);
@@ -32,16 +32,17 @@ public class Parser {
     }
 
     public void parse() {
-        symbol_stack = new Stack<>();
-        // Conversion between TokenType and String?
+        symbolStack = new Stack<>();
+
+        GrammarSymbol focus = symbolStack.peek();
         currentToken = getNextToken();
+
         // Push the start symbol to the stack
-        symbol_stack.push(NonTerminal.TIGER_PROGRAM);
-        GrammarSymbol focus = symbol_stack.peek();
-        while( true )
-        {
-            if(symbol_stack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
-            {
+        symbolStack.push(NonTerminal.TIGER_PROGRAM);
+
+        while (true) {
+
+            if (symbolStack.empty() && !scanner.hasNextToken()) { // no more input
                 System.out.println("End of parse.");
 
                 if (!didThrowError) {
@@ -49,53 +50,64 @@ public class Parser {
                 }
 
                 break;
-            }
-            else if( focus instanceof TokenType)
-            {
+
+            } else if (focus instanceof TokenType) { // focus is terminal
                 TokenType terminal = (TokenType) focus;
 
                 if (terminal.equals(currentToken.getTokenType())) {
                     acceptToken();
 
                 } else {
-                    didThrowError = true;
-                    List<TokenType> expectedTokens = Collections.singletonList(terminal);
-
-                    if (errorCorrection) {
-                        correctError(expectedTokens);
-                    } else {
-                        throwError(scanner.getLexicalError(currentToken, expectedTokens));
-                    }
-
+                    correctTerminalErrorIfEnabled(terminal);
                 }
-            }
-            else // focus is NT
-            {
+            } else { // focus is NT
+
                 NonTerminal nonTerminal = (NonTerminal) focus;
                 Rule ruleToExpandNonTerminal = parsingTable.getParsingRule(nonTerminal, currentToken.getTokenType());
 
                 if (ruleToExpandNonTerminal == null) {
-                    didThrowError = true;
-                    List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(nonTerminal);
-
-                    if (errorCorrection) {
-                        NonTerminal newFocus = correctError(nonTerminal);
-                        ruleToExpandNonTerminal = parsingTable.getParsingRule(newFocus, currentToken.getTokenType());
-                    } else {
-                        throwError(scanner.getLexicalError(currentToken, expectedTokens));
-                    }
+                    ruleToExpandNonTerminal = correctNtErrorIfEnabled(nonTerminal);
                 }
 
-                symbol_stack.pop();
+                symbolStack.pop();
+
                 pushExpansionToSymbolStack(ruleToExpandNonTerminal);
-
-
             }
-            if (!symbol_stack.isEmpty()) {
-                focus = symbol_stack.peek();
+
+            if (!symbolStack.isEmpty()) {
+                focus = symbolStack.peek();
             }
         }
 
+    }
+
+    private void correctTerminalErrorIfEnabled(TokenType terminal) {
+        didThrowError = true;
+        List<TokenType> expectedTokens = Collections.singletonList(terminal);
+
+        if (errorCorrection) {
+            correctError(expectedTokens);
+        } else {
+            throwError(scanner.getLexicalError(currentToken, expectedTokens));
+        }
+    }
+
+    private Rule correctNtErrorIfEnabled(NonTerminal nonTerminal) {
+        didThrowError = true;
+
+        List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(nonTerminal);
+
+        Rule ruleToExpandNonTerminal = null;
+
+        if (errorCorrection) {
+            NonTerminal newFocus = correctError(nonTerminal);
+            ruleToExpandNonTerminal = parsingTable.getParsingRule(newFocus, currentToken.getTokenType());
+
+        } else {
+            throwError(scanner.getLexicalError(currentToken, expectedTokens));
+        }
+
+        return ruleToExpandNonTerminal;
     }
 
     private void pushExpansionToSymbolStack(Rule ruleToExpandNonTerminal) {
@@ -103,7 +115,7 @@ public class Parser {
 
         for (int expansionIndex = expansion.length - 1; expansionIndex >= 0; expansionIndex--) {
             if (expansion[expansionIndex] != NULL) {
-                symbol_stack.push(expansion[expansionIndex]);
+                symbolStack.push(expansion[expansionIndex]);
             }
         }
     }
@@ -112,8 +124,8 @@ public class Parser {
         if (debug) {
             System.out.println(currentToken.getTokenType());
         }
-        if (!symbol_stack.empty()) {
-            symbol_stack.pop();
+        if (!symbolStack.empty()) {
+            symbolStack.pop();
         }
         if (scanner.hasNextToken()) {
             currentToken = getNextToken();
@@ -168,8 +180,8 @@ public class Parser {
     private void restartParsingAtStatement() {
         currentToken = getNextToken();
 
-        while (!symbol_stack.empty() && symbol_stack.peek() != NonTerminal.STAT_SEQ_TAIL) {
-            symbol_stack.pop();
+        while (!symbolStack.empty() && symbolStack.peek() != NonTerminal.STAT_SEQ_TAIL) {
+            symbolStack.pop();
         }
     }
 
