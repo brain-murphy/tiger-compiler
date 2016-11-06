@@ -1,6 +1,6 @@
 package scanner;
 
-import parser.GrammarSymbol;
+import parser.syntactic.GrammarSymbol;
 
 public enum TokenType implements GrammarSymbol {
 

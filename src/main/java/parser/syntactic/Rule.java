@@ -1,4 +1,4 @@
-package parser;
+package parser.syntactic;
 
 import scanner.TokenType;
 import util.General;
@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static parser.NonTerminal.*;
+import static parser.syntactic.NonTerminal.*;
 import static scanner.TokenType.*;
 import static util.General.arrayHash;
 

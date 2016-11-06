@@ -1,8 +1,8 @@
 package parser.symantic.ir
 
-import parser.NonTerminal
-import parser.ParseStream
-import parser.Rule
+import parser.syntactic.NonTerminal
+import parser.symantic.ParseStream
+import parser.syntactic.Rule
 import scanner.TokenType
 import parser.symantic.symboltable.Symbol
 

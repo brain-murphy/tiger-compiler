@@ -1,6 +1,6 @@
 package main;
 
-import parser.Parser;
+import parser.syntactic.Parser;
 import scanner.DirectScanner;
 import scanner.Scanner;
 import util.Reader;

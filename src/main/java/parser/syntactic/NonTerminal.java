@@ -1,4 +1,4 @@
-package parser;
+package parser.syntactic;
 
 public enum NonTerminal implements GrammarSymbol {
     TIGER_PROGRAM,

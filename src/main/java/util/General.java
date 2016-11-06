@@ -1,6 +1,6 @@
 package util;
 
-import parser.GrammarSymbol;
+import parser.syntactic.GrammarSymbol;
 
 public class General {
     public static <T> int arrayHash(T[] array) {

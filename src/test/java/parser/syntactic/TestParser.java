@@ -1,6 +1,7 @@
-package parser;
+package parser.syntactic;
 
 import org.junit.Test;
+import parser.syntactic.Parser;
 import scanner.DirectScanner;
 import scanner.Scanner;
 import scanner.TestDirectScanner;

@@ -2,9 +2,6 @@ package util;
 
 import junit.framework.Assert;
 import org.junit.Test;
-import parser.Parser;
-import scanner.DirectScanner;
-import scanner.Scanner;
 
 public class TestReader {
 

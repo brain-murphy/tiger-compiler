@@ -1,6 +1,8 @@
-package parser;
+package parser.symantic;
 
 
+import parser.syntactic.GrammarSymbol;
+import parser.syntactic.NonTerminal;
 import scanner.TokenType;
 import parser.symantic.symboltable.Attribute;
 import parser.symantic.symboltable.Symbol;

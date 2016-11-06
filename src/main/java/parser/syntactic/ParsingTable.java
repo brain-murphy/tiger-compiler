@@ -1,4 +1,4 @@
-package parser;
+package parser.syntactic;
 
 import org.jetbrains.annotations.NotNull;
 import scanner.TokenType;

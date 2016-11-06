@@ -1,4 +1,4 @@
-package parser;
+package parser.syntactic;
 
 import scanner.TokenType;
 
