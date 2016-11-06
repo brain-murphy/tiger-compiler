@@ -1,6 +1,4 @@
-package symantic.symboltable;
-
-import org.w3c.dom.Attr;
+package parser.symantic.symboltable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,5 +18,9 @@ public class Symbol {
 
     public String getName() {
         return name;
+    }
+
+    public void putAttribute(Attribute attribute, Object value) {
+
     }
 }

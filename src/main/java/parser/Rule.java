@@ -4,6 +4,9 @@ import scanner.TokenType;
 import util.General;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import static parser.NonTerminal.*;
 import static scanner.TokenType.*;
@@ -99,6 +102,23 @@ public class Rule {
                     new Rule(LVALUE_TAIL, NULL),
                     new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
             };
+
+    // Keep in hashSet for faster lookup
+    private static Set<Rule> ruleSet;
+    static {
+        ruleSet = new HashSet<>(ALL_RULES.length);
+        Collections.addAll(ruleSet, ALL_RULES);
+    }
+
+    public static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
+        Rule rule = new Rule(nonTerminalExpanded, expansion);
+        if (ruleSet.contains(rule)) {
+            return rule;
+        } else {
+            throw new RuntimeException("cannot find rule");
+        }
+    }
+
     private NonTerminal nonTerminalExpanded;
     private GrammarSymbol[] expansion;
 
