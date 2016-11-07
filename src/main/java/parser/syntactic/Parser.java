@@ -1,6 +1,6 @@
 package parser.syntactic;
 
-import parser.symantic.ParseStream;
+import parser.semantic.ParseStream;
 import scanner.*;
 
 import static scanner.TokenType.NULL;

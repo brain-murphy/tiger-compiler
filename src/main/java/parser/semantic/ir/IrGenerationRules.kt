@@ -1,12 +1,12 @@
-package parser.symantic.ir
+package parser.semantic.ir
 
 import parser.syntactic.NonTerminal
-import parser.symantic.ParseStream
-import parser.symantic.symboltable.Attribute
+import parser.semantic.ParseStream
+import parser.semantic.symboltable.Attribute
 import parser.syntactic.Rule
 import scanner.TokenType
-import parser.symantic.symboltable.Symbol
-import parser.symantic.symboltable.SymbolTable
+import parser.semantic.symboltable.Symbol
+import parser.semantic.symboltable.SymbolTable
 
 import scanner.TokenType.*;
 
@@ -87,7 +87,7 @@ class IrGenerationRules(val parseStream: ParseStream,
     fun generateVarDeclaration() {
         val newVars = calculateVarList()
 
-        
+
     }
 
     fun calculateVarList(): List<Symbol> {

@@ -1,4 +1,4 @@
-package parser.symantic.ir
+package parser.semantic.ir
 
 open class ExpressionType()
 

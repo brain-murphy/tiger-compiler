@@ -1,4 +1,4 @@
-package parser.symantic.ir;
+package parser.semantic.ir;
 
 import java.util.*;
 import java.util.function.Consumer;

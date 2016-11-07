@@ -1,4 +1,4 @@
-package parser.symantic.symboltable;
+package parser.semantic.symboltable;
 
 import java.util.HashMap;
 import java.util.Map;

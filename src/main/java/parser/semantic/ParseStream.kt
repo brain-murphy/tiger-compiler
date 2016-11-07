@@ -1,11 +1,11 @@
-package parser.symantic
+package parser.semantic
 
 
 import parser.syntactic.GrammarSymbol
 import parser.syntactic.NonTerminal
 import scanner.TokenType
-import parser.symantic.symboltable.Attribute
-import parser.symantic.symboltable.Symbol
+import parser.semantic.symboltable.Attribute
+import parser.semantic.symboltable.Symbol
 import parser.syntactic.Rule
 
 import java.util.Arrays
@@ -61,10 +61,10 @@ class ParseStream {
     }
 
     private fun isUsefulForSemanticParse(grammarSymbol: GrammarSymbol): Boolean {
-        return true //TODO
+        return TokenType.PARSABLE_TOKEN_TYPES.contains(grammarSymbol)
     }
 
     private fun isUsefulForSemanticParse(rule: Rule): Boolean {
-        return true //TODO
+        return Rule.RULES_FOR_PARSING.contains(rule)
     }
 }
