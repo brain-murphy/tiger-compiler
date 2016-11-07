@@ -3,5 +3,6 @@ package parser.semantic.ir;
 public enum IrOperation {
     ASSIGN,
     ADD,
-    IS_CONST
+    JUMP_AND_LINK,
+
 }

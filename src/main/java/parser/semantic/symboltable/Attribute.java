@@ -9,5 +9,4 @@ public enum Attribute {
     IS_LITERAL,
     IS_FUNCTION,
     FUNCTION_START_LABEL,
-
 }

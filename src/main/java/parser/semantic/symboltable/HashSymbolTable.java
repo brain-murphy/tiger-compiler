@@ -1,5 +1,7 @@
 package parser.semantic.symboltable;
 
+import parser.semantic.SemanticException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,14 +46,14 @@ public class HashSymbolTable implements SymbolTable {
                 return currentTable.symbols.get(name);
             }
         } while (currentTable.getParentScope() != null);
-        
-        throw new SymbolTableException("did not recognize symbol with name " + name);
+
+        throw new SemanticException("did not recognize symbol with name " + name);
     }
 
     @Override
     public void insert(Symbol symbol) {
         if (symbols.containsKey(symbol.getName())) {
-            throw new SymbolTableException("Symbol table already contains symbol with name " + symbol.getName());
+            throw new SemanticException("Symbol table already contains symbol with name " + symbol.getName());
         }
 
         symbols.put(symbol.getName(), symbol);
@@ -60,12 +62,12 @@ public class HashSymbolTable implements SymbolTable {
     @Override
     public SymbolTable createChildScope(Symbol symbolDefiningChildScope) {
         if (!symbols.containsKey(symbolDefiningChildScope.getName())) {
-            throw new SymbolTableException("Symbol table does not contain a symbol with name "
+            throw new SemanticException("Symbol table does not contain a symbol with name "
                     + symbolDefiningChildScope.getName() + " and cannot create child scope.");
         }
 
         if (children.containsKey(symbolDefiningChildScope)) {
-            throw new SymbolTableException("There is already a child scope for symbol " + symbolDefiningChildScope.getName());
+            throw new SemanticException("There is already a child scope for symbol " + symbolDefiningChildScope.getName());
         }
 
         SymbolTable newChild = new HashSymbolTable(this, symbolDefiningScope);

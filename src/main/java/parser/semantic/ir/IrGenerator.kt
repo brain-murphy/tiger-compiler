@@ -2,6 +2,7 @@ package parser.semantic.ir
 
 import parser.syntactic.NonTerminal
 import parser.semantic.ParseStream
+import parser.semantic.SemanticException
 import parser.semantic.symboltable.Attribute
 import parser.syntactic.Rule
 import scanner.TokenType
@@ -9,8 +10,9 @@ import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
 
 import scanner.TokenType.*;
+import java.lang.reflect.Type
 
-class IrGenerater(val parseStream: ParseStream,
+class IrGenerator(val parseStream: ParseStream,
                   var currentSymbolTable: SymbolTable) {
 
     val ir = LinearIr()
@@ -131,20 +133,19 @@ class IrGenerater(val parseStream: ParseStream,
     }
 
     fun generateFunctionDeclaration() {
-        val functionStartLabel = Label()
-
         val functionSymbol = nextIdAsSymbol()
         currentSymbolTable.insert(functionSymbol)
 
         val functionType = calculateFunctionType()
         functionSymbol.putAttribute(Attribute.TYPE, functionType)
 
+        val functionStartLabel = Label()
+        functionSymbol.putAttribute(Attribute.FUNCTION_START_LABEL, functionStartLabel)
         emit(functionStartLabel)
 
         currentSymbolTable = currentSymbolTable.createChildScope(functionSymbol)
 
-
-
+        generateStatementSequence()
     }
 
     fun calculateFunctionType(): FunctionExpressionType {
@@ -164,6 +165,7 @@ class IrGenerater(val parseStream: ParseStream,
         val params: MutableList<ExpressionType> = mutableListOf()
         if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL)) {
             do {
+                // Deliberately unused. Skipping param name in parse stream.
                 val paramNameToken = parseStream.nextParsableToken()
 
                 val paramType = calculateType(parseStream.nextRule())
@@ -173,6 +175,78 @@ class IrGenerater(val parseStream: ParseStream,
         }
 
         return params
+    }
+
+    fun generateStatementSequence() {
+
+        do {
+            generateStatement()
+        } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_SEQ_TAIL, NonTerminal.STAT_SEQ))
+    }
+
+    fun generateStatement() {
+        val statementParseRule = parseStream.nextRule()
+
+        if (statementParseRule == Rule.getRuleForExpansion(NonTerminal.STAT, NonTerminal.LVALUE, NonTerminal.STAT_ID)) {
+            val lhs = generateName()
+
+            if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_ID, LPAREN, NonTerminal.EXPR_LIST, RPAREN, SEMI)) {
+                generateFunctionCall()
+            }
+        }
+    }
+
+    fun generateFunctionCall(function: Symbol): Symbol {
+        val parameterTypes = (function.getAttribute(Attribute.TYPE) as FunctionExpressionType).params
+        val arguments = generateArguments(parameterTypes)
+
+    }
+
+    fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
+        
+    }
+
+    fun generateAssignmentStatement() {
+
+    }
+
+    fun generateName(): Symbol {
+        val symbolToken = parseStream.nextParsableToken()
+        if (symbolToken.grammarSymbol == ID && symbolToken.text != null) {
+
+            val baseSymbol = currentSymbolTable.lookup(symbolToken.text)
+
+            if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.LVALUE_TAIL, LBRACK, NonTerminal.EXPR, RBRACK)) {
+                return generateArrayAccess(baseSymbol)
+
+            } else {
+                return baseSymbol
+            }
+
+        } else {
+            throw RuntimeException("token should be ID to be parsed as symbol")
+        }
+    }
+
+    private fun generateArrayAccess(baseSymbol: Symbol): Symbol {
+        if (baseSymbol.getAttribute(Attribute.TYPE) !is ArrayExpressionType) {
+            throw SemanticException("symbol ${baseSymbol.name} is not an array")
+        }
+        val arrayIndex = generateArrayIndex()
+
+        val arrayElement = currentSymbolTable.newTemporary()
+
+        emit(ThreeAddressCode(arrayElement, IrOperation.ADD, arrayIndex, baseSymbol))
+        return arrayElement
+    }
+
+    private fun generateArrayIndex(): Symbol {
+        val expressionValue = generateExpression()
+        if (expressionValue.getAttribute(Attribute.TYPE) !is IntegerExpressionType) {
+            throw SemanticException("array index must be integer expression")
+        }
+
+        return expressionValue
     }
 
     fun generateExpression(): Symbol {
