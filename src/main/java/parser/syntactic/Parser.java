@@ -92,6 +92,9 @@ public class Parser {
                 }
 
                 symbolStack.pop();
+
+                parseStream.put(ruleToExpandNonTerminal);
+
                 pushExpansionToSymbolStack(ruleToExpandNonTerminal);
 
 

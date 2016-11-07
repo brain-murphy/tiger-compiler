@@ -32,6 +32,7 @@ class ParseStream {
         }
     }
 
+    @JvmName("put")
     internal fun put(ruleExpanded: Rule) {
         if (isUsefulForSemanticParse(ruleExpanded)) {
 
