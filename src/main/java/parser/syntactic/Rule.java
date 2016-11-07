@@ -105,9 +105,23 @@ public class Rule {
 
     // Keep in hashSet for faster lookup
     private static Set<Rule> ruleSet;
+    public static Set<Rule> RULES_FOR_PARSING;
     static {
         ruleSet = new HashSet<>(ALL_RULES.length);
         Collections.addAll(ruleSet, ALL_RULES);
+
+        RULES_FOR_PARSING = new HashSet<>();
+        Collections.addAll(RULES_FOR_PARSING, getAllParsingRules());
+    }
+
+    private static Rule[] getAllParsingRules() {
+        return new Rule[] {
+                getRuleForExpansion(TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI),
+                getRuleForExpansion(NonTerminal.TYPE, TYPE_ID),
+                getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID),
+                getRuleForExpansion(NonTerminal.TYPE, ID),
+
+        }
     }
 
     public static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {

@@ -27,7 +27,7 @@ have the `TokenType` ID.
 
 ### Lexical Errors
 
-The Parser interacts with the Scanner by calling `Scanner#nextToken()`, or 
+The Parser interacts with the Scanner by calling `Scanner#nextParsableToken()`, or
 `Scanner#getTokenAtIndex()`. The Parser then checks whether the `TokenType` 
 matches any of the `TokenTypes` expected by the grammar. If it does not match any rules 
 in the grammar, then the parser should can get more information from the scanner about

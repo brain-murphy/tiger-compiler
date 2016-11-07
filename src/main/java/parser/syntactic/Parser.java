@@ -1,5 +1,6 @@
 package parser.syntactic;
 
+import parser.symantic.ParseStream;
 import scanner.*;
 
 import static scanner.TokenType.NULL;
@@ -16,31 +17,35 @@ public class Parser {
     private boolean didThrowError = false;
 
     ParsingTable parsingTable;
-    private Scanner scanner;
     private Token currentToken;
-    private Stack<GrammarSymbol> symbol_stack;
+    private Stack<GrammarSymbol> symbolStack;
 
-    public Parser(Scanner scanner) {
+    private Scanner scanner;
+
+    private ParseStream parseStream;
+
+    public Parser(Scanner scanner, ParseStream parseStream) {
         parsingTable = new ParsingTable(Rule.ALL_RULES);
         this.scanner = scanner;
+        this.parseStream = parseStream;
     }
 
-    Parser(Scanner scanner, boolean debug, boolean errorCorrection) {
-        this(scanner);
+    Parser(Scanner scanner, ParseStream parseStream, boolean debug, boolean errorCorrection) {
+        this(scanner, parseStream);
         this.debug = debug;
         this.errorCorrection = errorCorrection;
     }
 
     public void parse() {
-        symbol_stack = new Stack<>();
+        symbolStack = new Stack<>();
         // Conversion between TokenType and String?
         currentToken = getNextToken();
         // Push the start symbol to the stack
-        symbol_stack.push(NonTerminal.TIGER_PROGRAM);
-        GrammarSymbol focus = symbol_stack.peek();
+        symbolStack.push(NonTerminal.TIGER_PROGRAM);
+        GrammarSymbol focus = symbolStack.peek();
         while( true )
         {
-            if(symbol_stack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
+            if(symbolStack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
             {
                 System.out.println("End of parse.");
 
@@ -86,13 +91,13 @@ public class Parser {
                     }
                 }
 
-                symbol_stack.pop();
+                symbolStack.pop();
                 pushExpansionToSymbolStack(ruleToExpandNonTerminal);
 
 
             }
-            if (!symbol_stack.isEmpty()) {
-                focus = symbol_stack.peek();
+            if (!symbolStack.isEmpty()) {
+                focus = symbolStack.peek();
             }
         }
 
@@ -103,7 +108,7 @@ public class Parser {
 
         for (int expansionIndex = expansion.length - 1; expansionIndex >= 0; expansionIndex--) {
             if (expansion[expansionIndex] != NULL) {
-                symbol_stack.push(expansion[expansionIndex]);
+                symbolStack.push(expansion[expansionIndex]);
             }
         }
     }
@@ -112,9 +117,12 @@ public class Parser {
         if (debug) {
             System.out.println(currentToken.getTokenType());
         }
-        if (!symbol_stack.empty()) {
-            symbol_stack.pop();
+        if (!symbolStack.empty()) {
+            symbolStack.pop();
         }
+
+        parseStream.put(currentToken.getTokenType(), currentToken.getText());
+
         if (scanner.hasNextToken()) {
             currentToken = getNextToken();
         }
@@ -168,8 +176,8 @@ public class Parser {
     private void restartParsingAtStatement() {
         currentToken = getNextToken();
 
-        while (!symbol_stack.empty() && symbol_stack.peek() != NonTerminal.STAT_SEQ_TAIL) {
-            symbol_stack.pop();
+        while (!symbolStack.empty() && symbolStack.peek() != NonTerminal.STAT_SEQ_TAIL) {
+            symbolStack.pop();
         }
     }
 

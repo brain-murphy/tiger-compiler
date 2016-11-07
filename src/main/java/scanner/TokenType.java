@@ -2,6 +2,9 @@ package scanner;
 
 import parser.syntactic.GrammarSymbol;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public enum TokenType implements GrammarSymbol {
 
     NULL(""),
@@ -76,4 +79,16 @@ public enum TokenType implements GrammarSymbol {
     public int getPrecedence() {
         return ordinal();
     }
+
+    // hash set for faster lookup
+    public static Set<TokenType> PARSABLE_TOKEN_TYPES;
+    static {
+        PARSABLE_TOKEN_TYPES = new HashSet<>();
+    }
+
+    private static TokenType[] PARSABLE_TOKEN_TYPES_ARRAY = {
+            TokenType.ID,
+            TokenType.INTLIT,
+            TokenType.FLOATLIT
+    };
 }

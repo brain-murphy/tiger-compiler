@@ -14,4 +14,6 @@ public interface SymbolTable {
     void insert(Symbol symbol);
 
     SymbolTable createChildScope(Symbol symbolDefiningChildScope);
+
+    Symbol newTemporary();
 }

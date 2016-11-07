@@ -4,6 +4,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HashSymbolTable implements SymbolTable {
+
+    private static int nextTemporarySymbolId = 0;
+
+    private static String makeTemporarySymbolId() {
+        return "$$" + nextTemporarySymbolId++;
+    }
+
     private Map<String, Symbol> symbols;
     private Map<Symbol, SymbolTable> children;
 
@@ -30,7 +37,11 @@ public class HashSymbolTable implements SymbolTable {
 
     @Override
     public Symbol lookup(String name) {
-        return symbols.get(name);
+        if (symbols.containsKey(name)) {
+            return symbols.get(name);
+        } else {
+            throw new SymbolTableException("did not recognize symbol with name " + name);
+        }
     }
 
     @Override
@@ -59,4 +70,16 @@ public class HashSymbolTable implements SymbolTable {
 
         return newChild;
     }
+
+    @Override
+    public Symbol newTemporary() {
+        Symbol temporarySymbol = new Symbol(makeTemporarySymbolId());
+        temporarySymbol.putAttribute(Attribute.IS_TEMPORARY, true);
+
+        insert(temporarySymbol);
+
+        return temporarySymbol;
+    }
+
+
 }

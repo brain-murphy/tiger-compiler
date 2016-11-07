@@ -3,9 +3,6 @@ package parser.symantic.symboltable;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by Brian on 10/20/2016.
- */
 public class Symbol {
     private final Map<Attribute, Object> attributes;
     private final String name;
@@ -21,6 +18,10 @@ public class Symbol {
     }
 
     public void putAttribute(Attribute attribute, Object value) {
+        attributes.put(attribute, value);
+    }
 
+    public Object getAttribute(Attribute attribute) {
+        return attributes.get(attribute);
     }
 }
