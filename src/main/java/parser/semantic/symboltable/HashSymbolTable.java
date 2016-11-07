@@ -37,11 +37,15 @@ public class HashSymbolTable implements SymbolTable {
 
     @Override
     public Symbol lookup(String name) {
-        if (symbols.containsKey(name)) {
-            return symbols.get(name);
-        } else {
-            throw new SymbolTableException("did not recognize symbol with name " + name);
-        }
+        HashSymbolTable currentTable = this;
+
+        do {
+            if (currentTable.symbols.containsKey(name)) {
+                return currentTable.symbols.get(name);
+            }
+        } while (currentTable.getParentScope() != null);
+        
+        throw new SymbolTableException("did not recognize symbol with name " + name);
     }
 
     @Override

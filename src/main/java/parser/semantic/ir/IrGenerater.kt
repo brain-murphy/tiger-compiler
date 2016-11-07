@@ -137,10 +137,13 @@ class IrGenerater(val parseStream: ParseStream,
         currentSymbolTable.insert(functionSymbol)
 
         val functionType = calculateFunctionType()
+        functionSymbol.putAttribute(Attribute.TYPE, functionType)
 
         emit(functionStartLabel)
 
-        
+        currentSymbolTable = currentSymbolTable.createChildScope(functionSymbol)
+
+
 
     }
 
