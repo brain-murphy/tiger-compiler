@@ -6,5 +6,8 @@ package parser.semantic.symboltable;
 public enum Attribute {
     IS_TEMPORARY,
     TYPE,
-    IS_LITERAL
+    IS_LITERAL,
+    IS_FUNCTION,
+    FUNCTION_START_LABEL,
+
 }

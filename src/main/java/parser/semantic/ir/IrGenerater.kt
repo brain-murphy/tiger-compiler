@@ -26,7 +26,7 @@ class IrGenerater(val parseStream: ParseStream,
     }
 
     fun generateTypeDeclaration() {
-        val newType = toSymbol(parseStream.nextParsableToken())
+        val newType = nextIdAsSymbol()
 
         val type = calculateType(parseStream.nextRule())
 
@@ -131,7 +131,45 @@ class IrGenerater(val parseStream: ParseStream,
     }
 
     fun generateFunctionDeclaration() {
+        val functionStartLabel = Label()
 
+        val functionSymbol = nextIdAsSymbol()
+        currentSymbolTable.insert(functionSymbol)
+
+        val functionType = calculateFunctionType()
+
+        emit(functionStartLabel)
+
+        
+
+    }
+
+    fun calculateFunctionType(): FunctionExpressionType {
+        val params = calculateParams().toTypedArray()
+
+        val returnType: ExpressionType
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.RET_TYPE, COLON, NonTerminal.TYPE)) {
+            returnType = calculateType(parseStream.nextRule())
+        } else {
+            returnType = VoidExpressionType()
+        }
+
+        return FunctionExpressionType(params, returnType)
+    }
+
+    fun calculateParams(): List<ExpressionType> {
+        val params: MutableList<ExpressionType> = mutableListOf()
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL)) {
+            do {
+                val paramNameToken = parseStream.nextParsableToken()
+
+                val paramType = calculateType(parseStream.nextRule())
+                params.add(paramType)
+
+            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST_TAIL, COMMA, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL))
+        }
+
+        return params
     }
 
     fun generateExpression(): Symbol {
@@ -154,11 +192,12 @@ class IrGenerater(val parseStream: ParseStream,
         return symbol
     }
 
-    fun emit(vararg code: ThreeAddressCode) {
+    fun emit(vararg code: IrCode) {
         ir.append(*code)
     }
 
-    fun toSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
+    fun nextIdAsSymbol(): Symbol {
+        val parsableToken = parseStream.nextParsableToken()
 
         if (parsableToken.grammarSymbol == ID && parsableToken.text != null) {
             return Symbol(parsableToken.text)
