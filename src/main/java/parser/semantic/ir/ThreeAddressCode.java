@@ -2,7 +2,7 @@ package parser.semantic.ir;
 
 import parser.semantic.symboltable.Symbol;
 
-public class ThreeAddressCode {
+public class ThreeAddressCode implements IrCode {
     private Symbol r1;
     private Symbol r2;
     private Symbol r3;

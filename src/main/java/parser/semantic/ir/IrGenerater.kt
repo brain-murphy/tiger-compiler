@@ -20,6 +20,8 @@ class IrGenerater(val parseStream: ParseStream,
             generateTypeDeclaration()
         } else if (rule == Rule.getRuleForExpansion(NonTerminal.VAR_DECLARATION, VAR, NonTerminal.ID_LIST, COLON, NonTerminal.TYPE, NonTerminal.OPTIONAL_INIT, SEMI)) {
             generateVarDeclaration()
+        } else if (rule == Rule.getRuleForExpansion(NonTerminal.FUNCT_DECLARATION, FUNC, ID, LPAREN, NonTerminal.PARAM_LIST, RPAREN, NonTerminal.RET_TYPE, BEGIN, NonTerminal.STAT_SEQ, END, SEMI)) {
+            generateFunctionDeclaration()
         }
     }
 
@@ -126,6 +128,10 @@ class IrGenerater(val parseStream: ParseStream,
 
             emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN,valueAssigned, null))
         }
+    }
+
+    fun generateFunctionDeclaration() {
+
     }
 
     fun generateExpression(): Symbol {
