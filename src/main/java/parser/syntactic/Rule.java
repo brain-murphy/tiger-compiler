@@ -121,6 +121,14 @@ public class Rule {
                 getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID),
                 getRuleForExpansion(NonTerminal.TYPE, ID),
 
+                getRuleForExpansion(NonTerminal.VAR_DECLARATION, VAR, NonTerminal.ID_LIST, COLON, NonTerminal.TYPE, NonTerminal.OPTIONAL_INIT, SEMI),
+                getRuleForExpansion(NonTerminal.ID_LIST_TAIL, COMMA, NonTerminal.ID_LIST),
+                getRuleForExpansion(ID_LIST_TAIL, NULL),
+                getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST),
+                getRuleForExpansion(OPTIONAL_INIT, NULL)
+
+
+
         }
     }
 

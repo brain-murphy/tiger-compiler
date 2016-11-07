@@ -2,5 +2,6 @@ package parser.semantic.ir;
 
 public enum IrOperation {
     ASSIGN,
-    ADD
+    ADD,
+    IS_CONST
 }

@@ -10,8 +10,11 @@ import parser.semantic.symboltable.SymbolTable
 
 import scanner.TokenType.*;
 
-class IrGenerationRules(val parseStream: ParseStream,
-                        var currentSymbolTable: SymbolTable) {
+class IrGenerater(val parseStream: ParseStream,
+                  var currentSymbolTable: SymbolTable) {
+
+    val ir = LinearIr()
+
     fun takeAction(rule: Rule): Symbol {
         if (rule == Rule.getRuleForExpansion(NonTerminal.TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI)) {
             generateTypeDeclaration()
@@ -23,14 +26,14 @@ class IrGenerationRules(val parseStream: ParseStream,
     fun generateTypeDeclaration() {
         val newType = toSymbol(parseStream.nextParsableToken())
 
-        val type = calculateExpressionType(parseStream.nextRule())
+        val type = calculateType(parseStream.nextRule())
 
         newType.putAttribute(Attribute.TYPE, type)
 
         currentSymbolTable.insert(newType)
     }
 
-    fun calculateExpressionType(parseRuleUsed: Rule): ExpressionType {
+    fun calculateType(parseRuleUsed: Rule): ExpressionType {
         if (parseRuleUsed == Rule.getRuleForExpansion(NonTerminal.TYPE, NonTerminal.TYPE_ID)) {
             return calculateBasicType()
 
@@ -67,7 +70,7 @@ class IrGenerationRules(val parseStream: ParseStream,
             throw RuntimeException("array length token should be int literal but could not be parsed")
         }
 
-        val baseType = calculateExpressionType(parseStream.nextRule())
+        val baseType = calculateType(parseStream.nextRule())
 
         return ArrayExpressionType(baseType, arrayLength)
     }
@@ -87,17 +90,23 @@ class IrGenerationRules(val parseStream: ParseStream,
     fun generateVarDeclaration() {
         val newVars = calculateVarList()
 
-        val type = calculateExpressionType(parseStream.nextRule())
+        val type = calculateType(parseStream.nextRule())
 
         newVars.forEach {
             it.putAttribute(Attribute.TYPE, type)
             currentSymbolTable.insert(it)
         }
 
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST)) {
+        if (hasOptionalInit()) {
+            val initialValue = generateConst()
 
+            newVars.forEach {
+                generateAssignment(it, initialValue)
+            }
         }
     }
+
+    private fun hasOptionalInit() = parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST)
 
     fun calculateVarList(): List<Symbol> {
         val varList: MutableList<Symbol> = mutableListOf()
@@ -112,17 +121,35 @@ class IrGenerationRules(val parseStream: ParseStream,
         return varList
     }
 
-    fun generateAssignment(symbolToAssign: Symbol) {
-        val expressionValue = generateExpression()
+    fun generateAssignment(symbolToAssign: Symbol, valueAssigned: Symbol) {
+        if (valueAssigned.getAttribute(Attribute.TYPE) == symbolToAssign.getAttribute(Attribute.TYPE)) {
 
+            emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN,valueAssigned, null))
+        }
     }
 
     fun generateExpression(): Symbol {
+        emit()
+    }
 
+    fun generateConst(): Symbol {
+        val literalToken = parseStream.nextParsableToken()
+
+        val symbol = currentSymbolTable.newTemporary()
+
+        if (literalToken.grammarSymbol == TokenType.INTLIT && literalToken.text != null) {
+            symbol.putAttribute(Attribute.TYPE, IntegerExpressionType())
+        } else if (literalToken.grammarSymbol == TokenType.FLOATLIT && literalToken.text != null) {
+            symbol.putAttribute(Attribute.TYPE, FloatExpressionType())
+        }
+
+        symbol.putAttribute(Attribute.IS_LITERAL, true)
+
+        return symbol
     }
 
     fun emit(vararg code: ThreeAddressCode) {
-        ThreeAddressCode()
+        ir.append(*code)
     }
 
     fun toSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
