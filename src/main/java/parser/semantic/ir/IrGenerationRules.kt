@@ -87,7 +87,16 @@ class IrGenerationRules(val parseStream: ParseStream,
     fun generateVarDeclaration() {
         val newVars = calculateVarList()
 
+        val type = calculateExpressionType(parseStream.nextRule())
 
+        newVars.forEach {
+            it.putAttribute(Attribute.TYPE, type)
+            currentSymbolTable.insert(it)
+        }
+
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST)) {
+
+        }
     }
 
     fun calculateVarList(): List<Symbol> {
@@ -101,6 +110,19 @@ class IrGenerationRules(val parseStream: ParseStream,
         } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.ID_LIST_TAIL, COMMA, NonTerminal.ID_LIST))
 
         return varList
+    }
+
+    fun generateAssignment(symbolToAssign: Symbol) {
+        val expressionValue = generateExpression()
+
+    }
+
+    fun generateExpression(): Symbol {
+
+    }
+
+    fun emit(vararg code: ThreeAddressCode) {
+        ThreeAddressCode()
     }
 
     fun toSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
