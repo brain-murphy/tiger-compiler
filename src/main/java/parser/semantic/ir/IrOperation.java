@@ -3,6 +3,20 @@ package parser.semantic.ir;
 public enum IrOperation {
     ASSIGN,
     ADD,
-    JUMP_AND_LINK,
-
+    MULT,
+    DIV,
+    AND,
+    OR,
+    GOTO,
+    BREQ,
+    BRNEQ,
+    BRLT,
+    BRGT,
+    BRGEQ,
+    BRLEQ,
+    RETURN,
+    CALL,
+    CALLR,
+    ARRAY_STORE,
+    ARRAY_LOAD
 }

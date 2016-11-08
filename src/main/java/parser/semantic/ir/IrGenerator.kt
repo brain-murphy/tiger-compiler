@@ -9,7 +9,7 @@ import scanner.TokenType
 import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
 
-import scanner.TokenType.*;
+import scanner.TokenType.*
 import java.lang.reflect.Type
 
 class IrGenerator(val parseStream: ParseStream,
@@ -105,7 +105,7 @@ class IrGenerator(val parseStream: ParseStream,
             val initialValue = generateConst()
 
             newVars.forEach {
-                generateAssignment(it, initialValue)
+                generateOptionalInit(it, initialValue)
             }
         }
     }
@@ -125,10 +125,10 @@ class IrGenerator(val parseStream: ParseStream,
         return varList
     }
 
-    fun generateAssignment(symbolToAssign: Symbol, valueAssigned: Symbol) {
+    fun generateOptionalInit(symbolToAssign: Symbol, valueAssigned: Symbol) {
         if (valueAssigned.getAttribute(Attribute.TYPE) == symbolToAssign.getAttribute(Attribute.TYPE)) {
 
-            emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN,valueAssigned, null))
+            emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN, valueAssigned, null))
         }
     }
 
@@ -149,11 +149,13 @@ class IrGenerator(val parseStream: ParseStream,
     }
 
     fun calculateFunctionType(): FunctionExpressionType {
-        val params = calculateParams().toTypedArray()
+        val params = calculateParams()
 
         val returnType: ExpressionType
+
         if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.RET_TYPE, COLON, NonTerminal.TYPE)) {
             returnType = calculateType(parseStream.nextRule())
+
         } else {
             returnType = VoidExpressionType()
         }
@@ -161,12 +163,12 @@ class IrGenerator(val parseStream: ParseStream,
         return FunctionExpressionType(params, returnType)
     }
 
-    fun calculateParams(): List<ExpressionType> {
+    fun calculateParams(): Array<ExpressionType> {
         val params: MutableList<ExpressionType> = mutableListOf()
         if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL)) {
             do {
-                // Deliberately unused. Skipping param name in parse stream.
-                val paramNameToken = parseStream.nextParsableToken()
+                // Skipping param name (an ID) in parse stream.
+                parseStream.nextParsableToken()
 
                 val paramType = calculateType(parseStream.nextRule())
                 params.add(paramType)
@@ -174,7 +176,7 @@ class IrGenerator(val parseStream: ParseStream,
             } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST_TAIL, COMMA, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL))
         }
 
-        return params
+        return params.toTypedArray()
     }
 
     fun generateStatementSequence() {
@@ -191,23 +193,52 @@ class IrGenerator(val parseStream: ParseStream,
             val lhs = generateName()
 
             if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_ID, LPAREN, NonTerminal.EXPR_LIST, RPAREN, SEMI)) {
-                generateFunctionCall()
+                generateFunctionCallAsStatement(lhs)
+            } else {
+                generateAssignmentStatement(lhs)
             }
         }
     }
 
-    fun generateFunctionCall(function: Symbol): Symbol {
+    fun generateFunctionCallAsStatement(function: Symbol) {
         val parameterTypes = (function.getAttribute(Attribute.TYPE) as FunctionExpressionType).params
+
         val arguments = generateArguments(parameterTypes)
 
+        emit(FunctionCallCode(IrOperation.CALLR, function, *arguments))
     }
 
     fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
-        
+        val argumentsList: MutableList<Symbol> = mutableListOf()
+
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
+            do {
+                argumentsList.add(generateExpression())
+            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
+        }
+
+        val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
+
+        if (argumentsList.size != paramTypes.size) {
+            throw SemanticException("expected params $paramTypes, found $argumentTypes")
+        }
+
+        paramTypes.forEachIndexed { i, paramType ->
+            if (paramType != argumentTypes[i]) {
+                throw SemanticException("expected params $paramTypes, found $argumentTypes")
+            }
+        }
+
+        return argumentsList.toTypedArray()
     }
 
-    fun generateAssignmentStatement() {
-
+    fun generateAssignmentStatement(lhs: Symbol) {
+        val rhsResult: Symbol
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_TAIL, NonTerminal.EXPR_NOT_STARTING_WITH_ID)) {
+            rhsResult = generateExpression()
+        } else {
+            rhsResult = generateExpressionStartingWithId()
+        }
     }
 
     fun generateName(): Symbol {
@@ -250,7 +281,41 @@ class IrGenerator(val parseStream: ParseStream,
     }
 
     fun generateExpression(): Symbol {
-        emit()
+        val operationRule = parseStream.nextRule()
+
+        if (operationRule == Rule.getRuleForExpansion(NonTerminal.A_TERM_TAIL, EQ, NonTerminal.B_TERM)) {
+            generateEqualsOperation()
+        } else if (operationRule == Rule.getRuleForExpansion(NonTerminal.A_TERM_TAIL, NEQ, NonTerminal.B_TERM)) {
+            generateNotEqualsOperation()
+        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, LESSER, B_TERM)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, GREATER, B_TERM)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, LESSEREQ, B_TERM)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, GREATEREQ, B_TERM)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(B_TERM_TAIL, PLUS, C_TERM)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(B_TERM_TAIL, MINUS, C_TERM)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(C_TERM_TAIL, MULT, FACTOR)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(C_TERM_TAIL, DIV, FACTOR)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(FACTOR, CONST)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(FACTOR, LVALUE)) {
+
+        } else if (operationRule == Rule.getRuleForExpansion(FACTOR, LPAREN, EXPR, RPAREN))
+    }
+
+    fun generateEqualsOperation() {
+        val result = currentSymbolTable.newTemporary()
+        result.putAttribute(Attribute.TYPE, IntegerExpressionType())
+
+        val
+
     }
 
     fun generateConst(): Symbol {

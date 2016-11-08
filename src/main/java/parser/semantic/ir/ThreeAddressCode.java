@@ -31,4 +31,9 @@ public class ThreeAddressCode implements IrCode {
     public Symbol getR1() {
         return r1;
     }
+
+    @Override
+    public String toString() {
+        return op.name() + ", " + r1.getName() + ", " + r2.getName() + ", " + r3.getName();
+    }
 }

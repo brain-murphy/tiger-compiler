@@ -127,9 +127,7 @@ public class Rule {
                 getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST),
                 getRuleForExpansion(OPTIONAL_INIT, NULL)
 
-
-
-        }
+        };
     }
 
     public static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
