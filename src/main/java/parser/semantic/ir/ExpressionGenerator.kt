@@ -1,5 +1,6 @@
 package parser.semantic.ir
 
+import com.sun.deploy.security.ValidationState
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
 import parser.semantic.symboltable.Attribute
@@ -47,6 +48,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
             return generateEqualsOperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.NEQ_TERM_RULE) {
+            return generateNEQOperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.LESSER_TERM_RULE) {
 
@@ -57,10 +59,13 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         } else if (operationRule == Rule.GREATEREQ_TERM_RULE) {
 
         } else if (operationRule == Rule.PLUS_TERM_RULE) {
+            return generateADDOperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.MINUS_TERM_RULE) {
+            return generateSUBTRACTOperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.MULT_TERM_RULE) {
+            return generateMULTOperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.CONST_TERM_RULE) {
 
@@ -71,6 +76,61 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         } else if (operationRule == Rule.EXPR_END_RULE) {
 
         }
+    }
+
+    private fun generateMULTOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
+        val resultType = getMixedOperandResultType(leftOperand, rightOperand)
+        
+        val result = symbolTable.newTemporary()
+        result.putAttribute(Attribute.TYPE, resultType)
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.MULT, leftOperand, rightOperand))
+
+        return result
+    }
+
+    private fun generateSUBTRACTOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
+        val resultType = getMixedOperandResultType(leftOperand, rightOperand)
+
+        val result = symbolTable.newTemporary()
+        result.putAttribute(Attribute.TYPE, resultType)
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.SUB, rightOperand, leftOperand))
+
+        return result
+    }
+
+    private fun generateADDOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
+        val resultType = getMixedOperandResultType(leftOperand, rightOperand)
+
+        val result = symbolTable.newTemporary()
+        result.putAttribute(Attribute.TYPE, resultType)
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.ADD, leftOperand, rightOperand))
+
+        return result
+    }
+
+    private fun getMixedOperandResultType(leftOperand: Symbol, rightOperand: Symbol): ExpressionType {
+        val leftOperandType = leftOperand.getAttribute(Attribute.TYPE)
+        val rightOperandType = rightOperand.getAttribute(Attribute.TYPE)
+
+        val resultType: ExpressionType
+        if (leftOperandType is FloatExpressionType || rightOperandType is FloatExpressionType) {
+            resultType = FloatExpressionType()
+
+        } else if (leftOperandType is IntegerExpressionType && rightOperandType is IntegerExpressionType) {
+            resultType = IntegerExpressionType()
+
+        } else {
+            throw SemanticException("arguments not compatible $leftOperand $rightOperand")
+        }
+
+        return resultType
+    }
+
+    private fun generateNEQOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
+
     }
 
     private fun generateOROperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
