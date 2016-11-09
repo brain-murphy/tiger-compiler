@@ -3,6 +3,7 @@ package parser.semantic.ir;
 public enum IrOperation {
     ASSIGN,
     ADD,
+    SUB,
     MULT,
     DIV,
     AND,

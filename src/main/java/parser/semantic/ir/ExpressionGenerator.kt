@@ -13,11 +13,17 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
     var currentRule = parseStream.nextRule()
 
     fun generateExpression(): Symbol {
-        val lastResult: Symbol? = null
+        var lastResult: Symbol = parseFirstTerm()
 
         while (currentRule != Rule.EXPR_END_RULE) {
-            expressionParsing(lastResult)
+            lastResult = expressionParsing(lastResult)
         }
+
+        return lastResult
+    }
+
+    fun parseFirstTerm(): Symbol {
+
     }
 
     fun expressionParsing(lastValue: Symbol?): Symbol {
@@ -66,6 +72,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
 
         }
     }
+
     private fun generateOROperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
         if (!isIntegerExpressionType(leftOperand) || !isIntegerExpressionType(rightOperand)) {
             throw SemanticException("operands for OR instruction must be integers")
@@ -101,12 +108,14 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
             throw SemanticException("operands for EQ instructions must be integers")
         }
 
-        val result = symbolTable.newTemporary()
-        result.putAttribute(Attribute.TYPE, IntegerExpressionType())
+        val difference = symbolTable.newTemporary()
+        difference.putAttribute(Attribute.TYPE, IntegerExpressionType())
+        irOutput.emit(ThreeAddressCode(difference, IrOperation.SUB, leftOperand, rightOperand))
 
-        irOutput.emit(ThreeAddressCode(result, IrOperation.ASSIGN, makeIntWithValue(1), null))
+        
 
-
+        val skipAssigningZeroLabel = symbolTable.newLabel()
+        ir
     }
 
     fun makeIntWithValue(value: Int): Symbol {
