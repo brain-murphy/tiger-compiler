@@ -10,7 +10,7 @@ public class LinearIr implements Iterable<IrCode> {
         codeSequence = new LinkedList<>();
     }
 
-    public void append(IrCode... instructions) {
+    public void emit(IrCode... instructions) {
         Collections.addAll(codeSequence, instructions);
     }
 

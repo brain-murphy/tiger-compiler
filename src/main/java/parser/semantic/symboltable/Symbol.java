@@ -3,7 +3,7 @@ package parser.semantic.symboltable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Symbol {
+public class Symbol implements SymbolTableEntry {
     private final Map<Attribute, Object> attributes;
     private final String name;
 

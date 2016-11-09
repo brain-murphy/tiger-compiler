@@ -7,6 +7,6 @@ public enum Attribute {
     IS_TEMPORARY,
     TYPE,
     IS_LITERAL,
-    IS_FUNCTION,
-    FUNCTION_START_LABEL,
+    LITERAL_VALUE,
+    FUNCTION_START_LABEL
 }

@@ -1,6 +1,8 @@
 package parser.semantic.symboltable;
 
 import parser.semantic.SemanticException;
+import parser.semantic.ir.Label;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -87,5 +89,9 @@ public class HashSymbolTable implements SymbolTable {
         return temporarySymbol;
     }
 
+    @Override
+    public Label newLabel() {
+        throw new NotImplementedException();
+    }
 
 }

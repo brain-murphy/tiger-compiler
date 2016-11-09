@@ -1,5 +1,6 @@
 package parser.semantic.ir
 
+import com.sun.source.doctree.AttributeTree
 import parser.syntactic.NonTerminal
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
@@ -128,7 +129,7 @@ class IrGenerator(val parseStream: ParseStream,
     fun generateOptionalInit(symbolToAssign: Symbol, valueAssigned: Symbol) {
         if (valueAssigned.getAttribute(Attribute.TYPE) == symbolToAssign.getAttribute(Attribute.TYPE)) {
 
-            emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN, valueAssigned, null))
+            ir.emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN, valueAssigned, null))
         }
     }
 
@@ -139,9 +140,9 @@ class IrGenerator(val parseStream: ParseStream,
         val functionType = calculateFunctionType()
         functionSymbol.putAttribute(Attribute.TYPE, functionType)
 
-        val functionStartLabel = Label()
+        val functionStartLabel = currentSymbolTable.newLabel()
         functionSymbol.putAttribute(Attribute.FUNCTION_START_LABEL, functionStartLabel)
-        emit(functionStartLabel)
+        ir.emit(functionStartLabel)
 
         currentSymbolTable = currentSymbolTable.createChildScope(functionSymbol)
 
@@ -149,7 +150,7 @@ class IrGenerator(val parseStream: ParseStream,
     }
 
     fun calculateFunctionType(): FunctionExpressionType {
-        val params = calculateParams()
+        val params = calculateParamTypes()
 
         val returnType: ExpressionType
 
@@ -163,7 +164,7 @@ class IrGenerator(val parseStream: ParseStream,
         return FunctionExpressionType(params, returnType)
     }
 
-    fun calculateParams(): Array<ExpressionType> {
+    fun calculateParamTypes(): Array<ExpressionType> {
         val params: MutableList<ExpressionType> = mutableListOf()
         if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL)) {
             do {
@@ -205,7 +206,7 @@ class IrGenerator(val parseStream: ParseStream,
 
         val arguments = generateArguments(parameterTypes)
 
-        emit(FunctionCallCode(IrOperation.CALLR, function, *arguments))
+        ir.emit(FunctionCallCode(IrOperation.CALLR, function, *arguments))
     }
 
     fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
@@ -234,11 +235,7 @@ class IrGenerator(val parseStream: ParseStream,
 
     fun generateAssignmentStatement(lhs: Symbol) {
         val rhsResult: Symbol
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_TAIL, NonTerminal.EXPR_NOT_STARTING_WITH_ID)) {
-            rhsResult = generateExpression()
-        } else {
-            rhsResult = generateExpressionStartingWithId()
-        }
+
     }
 
     fun generateName(): Symbol {
@@ -267,56 +264,22 @@ class IrGenerator(val parseStream: ParseStream,
 
         val arrayElement = currentSymbolTable.newTemporary()
 
-        emit(ThreeAddressCode(arrayElement, IrOperation.ADD, arrayIndex, baseSymbol))
+        ir.emit(ThreeAddressCode(arrayElement, IrOperation.ADD, arrayIndex, baseSymbol))
         return arrayElement
     }
 
     private fun generateArrayIndex(): Symbol {
         val expressionValue = generateExpression()
-        if (expressionValue.getAttribute(Attribute.TYPE) !is IntegerExpressionType) {
+        if (!isIntegerExpressionType(expressionValue)) {
             throw SemanticException("array index must be integer expression")
         }
 
         return expressionValue
     }
 
-    fun generateExpression(): Symbol {
-        val operationRule = parseStream.nextRule()
 
-        if (operationRule == Rule.getRuleForExpansion(NonTerminal.A_TERM_TAIL, EQ, NonTerminal.B_TERM)) {
-            generateEqualsOperation()
-        } else if (operationRule == Rule.getRuleForExpansion(NonTerminal.A_TERM_TAIL, NEQ, NonTerminal.B_TERM)) {
-            generateNotEqualsOperation()
-        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, LESSER, B_TERM)) {
 
-        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, GREATER, B_TERM)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, LESSEREQ, B_TERM)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(A_TERM_TAIL, GREATEREQ, B_TERM)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(B_TERM_TAIL, PLUS, C_TERM)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(B_TERM_TAIL, MINUS, C_TERM)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(C_TERM_TAIL, MULT, FACTOR)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(C_TERM_TAIL, DIV, FACTOR)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(FACTOR, CONST)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(FACTOR, LVALUE)) {
-
-        } else if (operationRule == Rule.getRuleForExpansion(FACTOR, LPAREN, EXPR, RPAREN))
-    }
-
-    fun generateEqualsOperation() {
-        val result = currentSymbolTable.newTemporary()
-        result.putAttribute(Attribute.TYPE, IntegerExpressionType())
-
-        val
-
-    }
+    private fun isIntegerExpressionType(leftOperand: Symbol) = leftOperand.getAttribute(Attribute.TYPE) is IntegerExpressionType
 
     fun generateConst(): Symbol {
         val literalToken = parseStream.nextParsableToken()
@@ -325,17 +288,16 @@ class IrGenerator(val parseStream: ParseStream,
 
         if (literalToken.grammarSymbol == TokenType.INTLIT && literalToken.text != null) {
             symbol.putAttribute(Attribute.TYPE, IntegerExpressionType())
+            symbol.putAttribute(Attribute.LITERAL_VALUE, literalToken.text.toInt())
+
         } else if (literalToken.grammarSymbol == TokenType.FLOATLIT && literalToken.text != null) {
             symbol.putAttribute(Attribute.TYPE, FloatExpressionType())
+            symbol.putAttribute(Attribute.LITERAL_VALUE, literalToken.text.toFloat())
         }
 
         symbol.putAttribute(Attribute.IS_LITERAL, true)
 
         return symbol
-    }
-
-    fun emit(vararg code: IrCode) {
-        ir.append(*code)
     }
 
     fun nextIdAsSymbol(): Symbol {

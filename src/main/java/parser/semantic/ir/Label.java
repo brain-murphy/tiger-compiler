@@ -1,6 +1,8 @@
 package parser.semantic.ir;
 
-public class Label implements IrCode {
+import parser.semantic.symboltable.SymbolTableEntry;
+
+public class Label implements IrCode, SymbolTableEntry {
 
     private static int nextLabelId = 0;
     private static String makeLabelId() {
@@ -14,7 +16,8 @@ public class Label implements IrCode {
         labelName = makeLabelId();
     }
 
-    public String getLabelName() {
+    @Override
+    public String getName() {
         return labelName;
     }
 }
