@@ -1,5 +1,6 @@
 package parser.semantic.ir
 
+import com.sun.corba.se.impl.naming.pcosnaming.ServantManagerImpl
 import com.sun.deploy.security.ValidationState
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
@@ -7,16 +8,19 @@ import parser.semantic.symboltable.Attribute
 import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
 import parser.syntactic.Rule
+import scanner.Token
+import scanner.TokenType
 
 class ExpressionGenerator(val symbolTable: SymbolTable,
                           val parseStream: ParseStream,
                           val irOutput: LinearIr) {
     var currentRule = parseStream.nextRule()
+    var expressionEndsToParse = 1
 
-    fun generateExpression(): Symbol {
+    fun generateAssignmentExpression(): Symbol {
         var lastResult: Symbol = parseFirstTerm()
 
-        while (currentRule != Rule.EXPR_END_RULE) {
+        while (expressionEndsToParse > 0) {
             lastResult = expressionParsing(lastResult)
         }
 
@@ -24,7 +28,11 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
     }
 
     fun parseFirstTerm(): Symbol {
+        if (parseStream.nextRule() == Rule.EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
+            expressionParsing(null)
+        } else {
 
+        }
     }
 
     fun expressionParsing(lastValue: Symbol?): Symbol {
@@ -68,14 +76,67 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
             return generateMULTOperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.CONST_TERM_RULE) {
+            return generateConst()
 
         } else if (operationRule == Rule.LVALUE_TERM_RULE) {
+            return generateLValue()
 
         } else if (operationRule == Rule.PAREN_TERM_RULE) {
+            expressionEndsToParse += 1
+            return expressionParsing(null)
 
         } else if (operationRule == Rule.EXPR_END_RULE) {
-
+            expressionEndsToParse -= 1
+            return leftOperand
         }
+
+        throw RuntimeException("could not match rule found while parsing expression")
+    }
+
+    private fun generateConst(): Symbol {
+        val literalToken = parseStream.nextParsableToken()
+
+        val const: Symbol
+
+        if (literalToken.grammarSymbol == TokenType.INTLIT && literalToken.text != null) {
+            const = makeIntWithValue(literalToken.text.toInt())
+
+        } else if (literalToken.grammarSymbol == TokenType.FLOATLIT && literalToken.text != null) {
+            const = makeFloatWithValue(literalToken.text.toFloat())
+        } else {
+            throw RuntimeException("expected constant (int or float) token")
+        }
+
+        return const
+    }
+
+    private fun generateLValue(): Symbol {
+        val nameToken = parseStream.nextParsableToken()
+        val symbol = lookupSymbol(nameToken)
+
+        if (parseStream.nextRule() == Rule.ARRAY_INDEX_RULE) {
+            return generateArrayAccess(symbol)
+        } else {
+            return symbol
+        }
+    }
+
+    private fun generateArrayAccess(nameSymbol: Symbol): Symbol {
+        if (nameSymbol.getAttribute(Attribute.TYPE) !is ArrayExpressionType) {
+            throw SemanticException("${nameSymbol.name} is not an array")
+        }
+
+        val index = generateAssignmentExpression()
+
+        if (!isIntegerExpressionType(index)) {
+            throw SemanticException("array index must be an integer type");
+        }
+
+        val result = symbolTable.newTemporary()
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.ARRAY_LOAD, nameSymbol, index))
+
+        return result
     }
 
     private fun generateMULTOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
@@ -186,6 +247,26 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         integer.putAttribute(Attribute.LITERAL_VALUE, value)
 
         return integer
+    }
+
+    fun makeFloatWithValue(value: Float): Symbol {
+        val float = symbolTable.newTemporary()
+
+        float.putAttribute(Attribute.TYPE, FloatExpressionType())
+        float.putAttribute(Attribute.IS_LITERAL, true)
+        float.putAttribute(Attribute.LITERAL_VALUE, value)
+
+        return float
+    }
+
+    fun lookupSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
+
+        if (parsableToken.grammarSymbol == TokenType.ID && parsableToken.text != null) {
+            return symbolTable.lookup(parsableToken.text)
+        } else {
+            throw RuntimeException("token should have TokenType ID to be parsed as symbol")
+        }
+
     }
 
 

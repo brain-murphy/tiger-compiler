@@ -103,6 +103,9 @@ public class Rule {
                     new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
             };
 
+    public static final Rule EXPRESSION_NOT_STARTING_WITH_ID_RULE = getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID);
+    public static final Rule EXPRESSION_OR_FUNCTION_START_RULE = getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL);
+
     public static final Rule AND_TERM_RULE = getRuleForExpansion(EXPR_TAIL, AND, A_TERM);
     public static final Rule OR_TERM_RULE = getRuleForExpansion(EXPR_TAIL, OR, A_TERM);
     public static final Rule EQ_TERM_RULE = getRuleForExpansion(A_TERM_TAIL, EQ, B_TERM);
@@ -118,7 +121,7 @@ public class Rule {
     public static final Rule LVALUE_TERM_RULE = getRuleForExpansion(FACTOR, LVALUE);
     public static final Rule PAREN_TERM_RULE = getRuleForExpansion(EXPR_LIST, EXPR, EXPR_LIST_TAIL);
     public static final Rule EXPR_END_RULE = getRuleForExpansion(EXPR_TAIL, NULL);
-
+    public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
 
     // Keep in hashSet for faster lookup
     private static Set<Rule> ruleSet;
@@ -159,7 +162,11 @@ public class Rule {
                 getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK),
                 getRuleForExpansion(LVALUE_TAIL, NULL),
                 getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
-                getRuleForExpansion(STAT_ID, ASSIGN, STAT_TAIL, SEMI)
+                getRuleForExpansion(STAT_ID, ASSIGN, STAT_TAIL, SEMI),
+
+                getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID),
+                getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL)
+
 
 
         };
