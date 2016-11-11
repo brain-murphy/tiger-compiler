@@ -2,6 +2,7 @@ package scanner;
 
 import parser.syntactic.GrammarSymbol;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -80,15 +81,18 @@ public enum TokenType implements GrammarSymbol {
         return ordinal();
     }
 
+    private static TokenType[] PARSABLE_TOKEN_TYPES_ARRAY = {
+            TokenType.ID,
+            TokenType.INTLIT,
+            TokenType.FLOATLIT,
+            TokenType.FLOATTYPEID,
+            TokenType.INTTYPEID
+    };
+
     // hash set for faster lookup
     public static Set<TokenType> PARSABLE_TOKEN_TYPES;
     static {
         PARSABLE_TOKEN_TYPES = new HashSet<>();
+        Collections.addAll(PARSABLE_TOKEN_TYPES, PARSABLE_TOKEN_TYPES_ARRAY);
     }
-
-    private static TokenType[] PARSABLE_TOKEN_TYPES_ARRAY = {
-            TokenType.ID,
-            TokenType.INTLIT,
-            TokenType.FLOATLIT
-    };
 }

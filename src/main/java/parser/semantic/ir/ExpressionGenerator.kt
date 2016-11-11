@@ -7,6 +7,8 @@ import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
 import parser.syntactic.NonTerminal
 import parser.syntactic.Rule
+import parser.syntactic.Rule.EXPRESSION_LIST_RULE
+import parser.syntactic.Rule.PAREN_TERM_RULE
 import scanner.TokenType
 
 class ExpressionGenerator(private val symbolTable: SymbolTable,
@@ -52,49 +54,40 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     }
 
     private fun expressionParsing(lastValue: Symbol?): Symbol {
-        val leftOperand: Symbol
-
-
-        if (lastValue == null) {
-            leftOperand = expressionParsing(null)
-        } else {
-            leftOperand = lastValue
-        }
-
         val operationRule = parseStream.nextRule()
 
         if (operationRule == Rule.AND_TERM_RULE) {
-            return generateANDOperation(leftOperand, expressionParsing(null))
+            return generateANDOperation(lastValue?:expressionParsing(null), expressionParsing(null))
 
         } else if (operationRule == Rule.OR_TERM_RULE) {
-            return generateOROperation(leftOperand, expressionParsing(null))
+            return generateOROperation(lastValue?:expressionParsing(null), expressionParsing(null))
 
         } else if (operationRule == Rule.EQ_TERM_RULE) {
-            return generateBooleanOperation(leftOperand, IrOperation.BREQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BREQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.NEQ_TERM_RULE) {
-            return generateBooleanOperation(leftOperand, IrOperation.BRNEQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRNEQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.LESSER_TERM_RULE) {
-            return generateBooleanOperation(leftOperand, IrOperation.BRLT, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLT, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.GREATER_TERM_RULE) {
-            return generateBooleanOperation(leftOperand, IrOperation.BRGT, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGT, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.LESSEREQ_TERM_RULE) {
-            return generateBooleanOperation(leftOperand, IrOperation.BRLEQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLEQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.GREATEREQ_TERM_RULE) {
-            return generateBooleanOperation(leftOperand, IrOperation.BRGEQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGEQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.PLUS_TERM_RULE) {
-            return generateADDOperation(leftOperand, expressionParsing(null))
+            return generateADDOperation(lastValue?:expressionParsing(null), expressionParsing(null))
 
         } else if (operationRule == Rule.MINUS_TERM_RULE) {
-            return generateSUBTRACTOperation(leftOperand, expressionParsing(null))
+            return generateSUBTRACTOperation(lastValue?:expressionParsing(null), expressionParsing(null))
 
         } else if (operationRule == Rule.MULT_TERM_RULE) {
-            return generateMULTOperation(leftOperand, expressionParsing(null))
+            return generateMULTOperation(lastValue?:expressionParsing(null), expressionParsing(null))
 
         } else if (operationRule == Rule.CONST_TERM_RULE) {
             return generateConst()
@@ -108,7 +101,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
 
         } else if (operationRule == Rule.EXPR_END_RULE) {
             expressionEndsToParse -= 1
-            return leftOperand
+            return lastValue!!
         }
 
         throw RuntimeException("could not match rule found while parsing expression")
@@ -141,12 +134,12 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     private fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
         val argumentsList: MutableList<Symbol> = mutableListOf()
 
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
+        if (parseStream.nextRule() == PAREN_TERM_RULE) {
             do {
                 val expressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
-                argumentsList.add(expressionGenerator.expressionParsing(null))
+                argumentsList.add(expressionGenerator.generateReducedExpression())
 
-            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, TokenType.COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
+            } while (parseStream.nextRule() == EXPRESSION_LIST_RULE)
         }
 
         checkArgumentCompatibility(argumentsList, paramTypes)
@@ -209,10 +202,13 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         val nameToken = parseStream.nextParsableToken()
         val symbol = lookupSymbol(nameToken)
 
-        if (parseStream.nextRule() == Rule.ARRAY_INDEX_RULE) {
+        val nextRule = parseStream.nextRule()
+        if (nextRule == Rule.ARRAY_INDEX_RULE) {
             return generateArrayAccess(symbol)
-        } else {
+        } else if (nextRule == Rule.VARIABLE_VALUE_RULE) {
             return symbol
+        } else {
+            throw RuntimeException("expected an lvalue rule but found: $nextRule")
         }
     }
 

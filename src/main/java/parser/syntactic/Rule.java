@@ -16,7 +16,7 @@ public class Rule {
     public static final Rule[] ALL_RULES =
             {
                     // first item: NT for expanding
-                    new Rule(TIGER_PROGRAM, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END),
+                    new Rule(TIGER_PROGRAM, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, LET_END),
                     new Rule(DECLARATION_SEGMENT, TYPE_DECLARATION_LIST, VAR_DECLARATION_LIST, FUNCT_DECLARATION_LIST),
                     new Rule(TYPE_DECLARATION_LIST, NULL),
                     new Rule(TYPE_DECLARATION_LIST, TYPE_DECLARATION, TYPE_DECLARATION_LIST),
@@ -46,7 +46,7 @@ public class Rule {
                     new Rule(PARAM, ID, COLON, NonTerminal.TYPE),
                     new Rule(STAT_SEQ, STAT, STAT_SEQ_TAIL),
                     new Rule(STAT_SEQ_TAIL, NULL),
-                    new Rule(STAT_SEQ_TAIL, STAT_SEQ),
+                    new Rule(STAT_SEQ_TAIL, STAT, STAT_SEQ_TAIL),
                     new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI),
                     new Rule(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
@@ -66,7 +66,7 @@ public class Rule {
                     new Rule(NOT_ID_EXPR_START, CONST),
                     new Rule(NOT_ID_EXPR_START, LPAREN, EXPR, RPAREN),
 
-                    new Rule(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN),
+                    new Rule(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN, EXPR_TAIL),
                     new Rule(EXPR_OR_FUNC_TAIL, LVALUE_TAIL, C_TERM_TAIL, B_TERM_TAIL, A_TERM_TAIL, EXPR_TAIL),
 
 
@@ -112,7 +112,7 @@ public class Rule {
         Collections.addAll(ruleSet, ALL_RULES);
     }
 
-    public static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
+    private static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
         Rule rule = new Rule(nonTerminalExpanded, expansion);
 
         if (ruleSet.contains(rule)) {
@@ -142,7 +142,7 @@ public class Rule {
     public static final Rule PARAM_LIST_END_RULE = getRuleForExpansion(PARAM_LIST_TAIL, NULL);
 
     public static final Rule STAT_SEQUENCE_RULE = getRuleForExpansion(STAT_SEQ, STAT, STAT_SEQ_TAIL);
-    public static final Rule STAT_SEQUENCE_TAIL_RULE = getRuleForExpansion(STAT_SEQ_TAIL, STAT_SEQ);
+    public static final Rule STAT_SEQUENCE_TAIL_RULE = getRuleForExpansion(STAT_SEQ_TAIL, STAT, STAT_SEQ_TAIL);
     public static final Rule STAT_SEQUENCE_END_RULE = getRuleForExpansion(STAT_SEQ_TAIL, NULL);
 
     public static final Rule ID_STATMENT_START_RULE = getRuleForExpansion(STAT, LVALUE, STAT_ID);
@@ -152,7 +152,7 @@ public class Rule {
     public static final Rule EXPRESSION_INVOCATION_RULE = getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI);
     public static final Rule EXPRESSION_NOT_STARTING_WITH_ID_RULE = getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID);
     public static final Rule EXPRESSION_OR_FUNCTION_START_RULE = getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL);
-    public static final Rule FUNCTION_INVOCATION_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN);
+    public static final Rule FUNCTION_INVOCATION_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN, EXPR_TAIL);
     public static final Rule LVALUE_EXPRESSION_START_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LVALUE_TAIL, C_TERM_TAIL, B_TERM_TAIL, A_TERM_TAIL, EXPR_TAIL);
 
     public static final Rule AND_TERM_RULE = getRuleForExpansion(EXPR_TAIL, AND, A_TERM);
@@ -169,6 +169,8 @@ public class Rule {
     public static final Rule CONST_TERM_RULE = getRuleForExpansion(FACTOR, CONST);
     public static final Rule LVALUE_TERM_RULE = getRuleForExpansion(FACTOR, LVALUE);
     public static final Rule PAREN_TERM_RULE = getRuleForExpansion(EXPR_LIST, EXPR, EXPR_LIST_TAIL);
+    public static final Rule EXPRESSION_LIST_RULE = getRuleForExpansion(EXPR_LIST_TAIL, COMMA, EXPR, EXPR_LIST_TAIL);
+    public static final Rule EXPRESSION_LIST_END_RULE = getRuleForExpansion(EXPR_LIST_TAIL, NULL);
     public static final Rule EXPR_END_RULE = getRuleForExpansion(EXPR_TAIL, NULL);
     public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
     public static final Rule VARIABLE_VALUE_RULE = getRuleForExpansion(LVALUE_TAIL, NULL);
@@ -206,6 +208,9 @@ public class Rule {
                 STAT_SEQUENCE_TAIL_RULE,
                 STAT_SEQUENCE_END_RULE,
                 ID_STATMENT_START_RULE,
+
+                EXPRESSION_LIST_RULE,
+                EXPRESSION_LIST_END_RULE,
 
                 ARRAY_INDEX_RULE,
                 VARIABLE_VALUE_RULE,

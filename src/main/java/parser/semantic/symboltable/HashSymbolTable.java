@@ -1,7 +1,7 @@
 package parser.semantic.symboltable;
 
 import parser.semantic.SemanticException;
-import parser.semantic.ir.Label;
+import parser.semantic.ir.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +33,54 @@ public class HashSymbolTable implements SymbolTable {
 
         symbols = new HashMap<>();
         children = new HashMap<>();
+
+        initializeLibraryFunctions();
+    }
+
+    private void initializeLibraryFunctions() {
+        Symbol print = new Symbol("print");
+        print.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[]{new StringExpressionType()}, new VoidExpressionType()));
+        insert(print);
+
+        Symbol printi = new Symbol("printi");
+        printi.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[]{ new IntegerExpressionType() }, new VoidExpressionType()));
+        insert(printi);
+
+        Symbol flush = new Symbol("flush");
+        flush.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[]{}, new VoidExpressionType()));
+        insert(flush);
+
+        Symbol getChar = new Symbol("getchar");
+        getChar.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[]{}, new StringExpressionType()));
+        insert(getChar);
+
+        Symbol ord = new Symbol("ord");
+        ord.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[] {new StringExpressionType()}, new IntegerExpressionType()));
+        insert(ord);
+
+        Symbol chr = new Symbol("chr");
+        chr.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[] { new IntegerExpressionType()}, new StringExpressionType()));
+        insert(chr);
+
+        Symbol size = new Symbol("size");
+        size.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[] {new StringExpressionType()}, new IntegerExpressionType()));
+        insert(size);
+
+        Symbol substring = new Symbol("substring");
+        substring.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[] {new StringExpressionType(), new IntegerExpressionType(), new IntegerExpressionType()}, new StringExpressionType()));
+        insert(substring);
+
+        Symbol concat = new Symbol("concat");
+        concat.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[] {new StringExpressionType(), new StringExpressionType()}, new StringExpressionType()));
+        insert(concat);
+
+        Symbol not = new Symbol("not");
+        not.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[]{ new IntegerExpressionType()}, new IntegerExpressionType()));
+        insert(not);
+
+        Symbol exit = new Symbol("exit");
+        exit.putAttribute(Attribute.TYPE, new FunctionExpressionType(new ExpressionType[]{new IntegerExpressionType()}, new VoidExpressionType()));
+        insert(exit);
     }
 
     @Override
@@ -97,7 +145,12 @@ public class HashSymbolTable implements SymbolTable {
 
     @Override
     public Label newLabel() {
-        Label label = new Label(makeLabelId());
+        return newLabel(makeLabelId());
+    }
+
+    @Override
+    public Label newLabel(String name) {
+        Label label = new Label("_" + name);
 
         insert(label);
 

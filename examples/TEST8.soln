@@ -1,11 +1,12 @@
 /* type of function and variable do not match, wrong */
 let
         var a : float;
-        function print ( n : int) : int begin
+        function myPrint ( n : int) : int begin
                 printi(n);
+                return 1;
         end;
 in
-        a := print(a);
+        a := myPrint(a);
 end
 
 /*

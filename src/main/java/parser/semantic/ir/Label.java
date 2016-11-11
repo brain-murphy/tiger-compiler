@@ -14,4 +14,9 @@ public class Label implements IrCode, SymbolTableEntry {
     public String getName() {
         return labelName;
     }
+
+    @Override
+    public String toString() {
+        return labelName + ":";
+    }
 }

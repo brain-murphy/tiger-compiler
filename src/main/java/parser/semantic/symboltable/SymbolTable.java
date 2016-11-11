@@ -20,4 +20,5 @@ public interface SymbolTable {
     Symbol newTemporary();
 
     Label newLabel();
+    Label newLabel(String name);
 }

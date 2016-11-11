@@ -18,7 +18,9 @@ class IrGenerator(private val parseStream: ParseStream) {
 
     private var currentSymbolTable: SymbolTable = HashSymbolTable()
     private val ir = LinearIr()
+
     private val loopEndStack = ArrayDeque<Label>()
+    private val functionParseStack = ArrayDeque<Symbol>()
 
     private var letCount = 1
 
@@ -48,7 +50,10 @@ class IrGenerator(private val parseStream: ParseStream) {
         } else if (rule == STAT_SEQUENCE_RULE) {
             generateStatementSequence()
         } else if (rule == LET_END_RULE) {
-            currentSymbolTable = currentSymbolTable.parentScope
+            if (letCount > 1) {
+                currentSymbolTable = currentSymbolTable.parentScope
+            }
+            letCount -= 1
         }
     }
 
@@ -63,13 +68,13 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     fun calculateType(parseRuleUsed: Rule): ExpressionType {
-        if (parseRuleUsed == Rule.getRuleForExpansion(NonTerminal.TYPE, NonTerminal.TYPE_ID)) {
+        if (parseRuleUsed == BASE_TYPE_RULE) {
             return calculateBasicType()
 
-        } else if (parseRuleUsed == Rule.getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, NonTerminal.TYPE_ID)) {
+        } else if (parseRuleUsed == ARRAY_TYPE_RULE) {
             return calculateArrayType()
 
-        } else if (parseRuleUsed == Rule.getRuleForExpansion(NonTerminal.TYPE, ID)) {
+        } else if (parseRuleUsed == USER_DEFINED_TYPE_RULE) {
             return calculateUserDefinedType()
         } else {
             throw RuntimeException("could not recognize rule for parsing type")
@@ -135,7 +140,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    private fun hasOptionalInit() = parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST)
+    private fun hasOptionalInit() = parseStream.nextRule() == OPTIONAL_INIT_RULE
 
     fun calculateVarList(): List<Symbol> {
         val varList: MutableList<Symbol> = mutableListOf()
@@ -145,7 +150,7 @@ class IrGenerator(private val parseStream: ParseStream) {
             if (idToken.grammarSymbol == ID && idToken.text != null) {
                 varList.add(Symbol(idToken.text))
             }
-        } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.ID_LIST_TAIL, COMMA, NonTerminal.ID_LIST))
+        } while (parseStream.nextRule() == VAR_LIST_TAIL_RULE)
 
         return varList
     }
@@ -161,55 +166,75 @@ class IrGenerator(private val parseStream: ParseStream) {
         val functionSymbol = nextIdAsSymbol()
         currentSymbolTable.insert(functionSymbol)
 
-        val functionType = calculateFunctionType()
-        functionSymbol.putAttribute(Attribute.TYPE, functionType)
+        calculateFunctionAttributes(functionSymbol)
 
-        val functionStartLabel = currentSymbolTable.newLabel()
+        val functionStartLabel = currentSymbolTable.newLabel(functionSymbol.name)
         functionSymbol.putAttribute(Attribute.FUNCTION_START_LABEL, functionStartLabel)
         ir.emit(functionStartLabel)
 
         currentSymbolTable = currentSymbolTable.createChildScope(functionSymbol)
+        functionParseStack.push(functionSymbol)
+
+        addArgumentSymbols(functionSymbol)
+
+        // Deliberately skip STAT_SEQUENCE_START_RULE
+        parseStream.nextRule()
 
         generateStatementSequence()
 
+        ir.emit(ThreeAddressCode(null, IrOperation.RETURN, null, null))
+
+        functionParseStack.pop()
         currentSymbolTable = currentSymbolTable.parentScope
     }
 
-    fun calculateFunctionType(): FunctionExpressionType {
+    private fun addArgumentSymbols(functionSymbol: Symbol) {
+        val paramsNames = functionSymbol.getAttribute(Attribute.FUNCTION_PARAM_NAMES) as Array<String>
+
+        val paramTypes = (functionSymbol.getAttribute(Attribute.TYPE) as FunctionExpressionType).params
+
+        paramsNames.forEachIndexed { i, paramName ->
+            val argument = Symbol(paramName)
+            argument.putAttribute(Attribute.TYPE, paramTypes[i])
+
+            currentSymbolTable.insert(argument)
+        }
+    }
+
+    fun calculateFunctionAttributes(functionSymbol: Symbol) {
         val params = calculateParamTypes()
 
         val returnType: ExpressionType
 
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.RET_TYPE, COLON, NonTerminal.TYPE)) {
+        if (parseStream.nextRule() == RETURN_TYPE_RULE) {
             returnType = calculateType(parseStream.nextRule())
 
         } else {
             returnType = VoidExpressionType()
         }
 
-        return FunctionExpressionType(params, returnType)
+        functionSymbol.putAttribute(Attribute.TYPE, FunctionExpressionType(params.values.toTypedArray(), returnType))
+        functionSymbol.putAttribute(Attribute.FUNCTION_PARAM_NAMES, params.keys.toTypedArray())
     }
 
-    fun calculateParamTypes(): Array<ExpressionType> {
-        val params: MutableList<ExpressionType> = mutableListOf()
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL)) {
+    fun calculateParamTypes(): Map<String, ExpressionType> {
+        val params: MutableMap<String, ExpressionType> = mutableMapOf()
+        if (parseStream.nextRule() == PARAM_LIST_RULE) {
             do {
-                // Skipping param name (an ID) in parse stream.
-                parseStream.nextParsableToken()
-
+                val paramName = parseStream.nextParsableToken().text
                 val paramType = calculateType(parseStream.nextRule())
-                params.add(paramType)
 
-            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.PARAM_LIST_TAIL, COMMA, NonTerminal.PARAM, NonTerminal.PARAM_LIST_TAIL))
+                params.put(paramName!!, paramType)
+
+            } while (parseStream.nextRule() == PARAM_LIST_TAIL_RULE)
         }
 
-        return params.toTypedArray()
+        return params
     }
 
     fun generateStatementSequence() {
+        var statementParseRule = parseStream.nextRule()
         do {
-            val statementParseRule = parseStream.nextRule()
-
             if (statementParseRule == ID_STATMENT_START_RULE) {
                 generateStatementStartingWithId()
 
@@ -232,7 +257,8 @@ class IrGenerator(private val parseStream: ParseStream) {
                 generateLetStatement()
             }
 
-        } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_SEQ_TAIL, NonTerminal.STAT_SEQ))
+            statementParseRule = parseStream.nextRule()
+        } while (statementParseRule == STAT_SEQUENCE_TAIL_RULE)
     }
 
     private fun generateLetStatement() {
@@ -248,7 +274,20 @@ class IrGenerator(private val parseStream: ParseStream) {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
         val expressionReturned = expressionGenerator.generateReducedExpression()
 
+        checkReturnType(expressionReturned)
+
         ir.emit(ThreeAddressCode(expressionReturned, IrOperation.RETURN, null, null))
+    }
+
+    private fun checkReturnType(expressionReturned: Symbol) {
+        val functionType = functionParseStack.peek().getAttribute(Attribute.TYPE) as FunctionExpressionType
+        if (functionType.returnType != expressionReturned.getAttribute(Attribute.TYPE)) {
+            if (functionType.returnType is VoidExpressionType) {
+                throw SemanticException("void functions cannot have return statements")
+            } else {
+                throw SemanticException("expression returned needs to be type ${functionType.returnType}")
+            }
+        }
     }
 
     private fun generateBreakStatement() {
@@ -355,17 +394,22 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     fun generateStatementStartingWithId() {
-        if (parseStream.nextRule() == Rule.ARRAY_INDEX_RULE) {
+        val idStatementRule = parseStream.nextRule()
+        if (idStatementRule == Rule.ARRAY_INDEX_RULE) {
             generateArrayStatement()
         } else {
 
             val baseSymbol = lookupNextId()
+            val functionCallOrAssignment = parseStream.nextRule()
 
-            if (parseStream.nextRule() == Rule.FUNCTION_INVOCATION_RULE) {
+            if (functionCallOrAssignment == Rule.FUNCTION_STATEMENT_START_RULE) {
                 generateFunctionCallAsStatement(baseSymbol)
 
-            } else {
+            } else if (functionCallOrAssignment == ASSIGNMENT_STATEMENT_RULE) {
                 generateAssignmentStatement(baseSymbol)
+
+            } else {
+                throw RuntimeException("expected rule to parse function or assignment statement, but found $functionCallOrAssignment")
             }
         }
     }
@@ -403,12 +447,12 @@ class IrGenerator(private val parseStream: ParseStream) {
     fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
         val argumentsList: MutableList<Symbol> = mutableListOf()
 
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
+        if (parseStream.nextRule() == PAREN_TERM_RULE) {
             do {
                 val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
                 argumentsList.add(expressionGenerator.generateReducedExpression())
 
-            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
+            } while (parseStream.nextRule() == EXPRESSION_LIST_RULE)
         }
 
         checkArgumentCompatibility(argumentsList, paramTypes)

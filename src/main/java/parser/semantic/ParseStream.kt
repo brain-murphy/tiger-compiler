@@ -7,6 +7,7 @@ import scanner.TokenType
 import parser.semantic.symboltable.Attribute
 import parser.semantic.symboltable.Symbol
 import parser.syntactic.Rule
+import scanner.Token
 
 import java.util.Arrays
 import java.util.HashSet
@@ -16,15 +17,15 @@ class ParseStream {
 
     data class ParsableToken(val grammarSymbol: GrammarSymbol, val text:String?)
 
-    private val filteredTokens = SynchronousQueue<ParsableToken>()
-    private val filteredRules = SynchronousQueue<Rule>()
+    private val filteredTokens: MutableList<ParsableToken> = mutableListOf()
+    private val filteredRules: MutableList<Rule> = mutableListOf()
 
     @JvmName("put")
     internal fun put(grammarSymbol: GrammarSymbol, text: String) {
         if (isUsefulForSemanticParse(grammarSymbol)) {
 
             try {
-                filteredTokens.put(ParsableToken(grammarSymbol, text))
+                filteredTokens.add(ParsableToken(grammarSymbol, text))
             } catch (e: InterruptedException) {
                 e.printStackTrace()
             }
@@ -37,7 +38,7 @@ class ParseStream {
         if (isUsefulForSemanticParse(ruleExpanded)) {
 
             try {
-                filteredRules.put(ruleExpanded)
+                filteredRules.add(ruleExpanded)
             } catch (e: InterruptedException) {
                 throw RuntimeException(e)
             }
@@ -46,7 +47,8 @@ class ParseStream {
 
     fun nextParsableToken(): ParsableToken {
         try {
-            return filteredTokens.take()
+            val returnedToken = filteredTokens.removeAt(0)
+            return returnedToken
         } catch (e: InterruptedException) {
             throw RuntimeException(e)
         }
@@ -55,7 +57,8 @@ class ParseStream {
 
     fun nextRule(): Rule {
         try {
-            return filteredRules.take()
+            val returnedRule = filteredRules.removeAt(0)
+            return returnedRule
         } catch (e: InterruptedException) {
             throw RuntimeException(e)
         }

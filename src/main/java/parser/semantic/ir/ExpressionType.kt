@@ -73,3 +73,7 @@ class VoidExpressionType() : ExpressionType(0) {
         return 0
     }
 }
+
+class StringExpressionType() : ExpressionType(4) {
+
+}
