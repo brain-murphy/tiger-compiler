@@ -206,7 +206,7 @@ class IrGenerator(val parseStream: ParseStream,
 
         val arguments = generateArguments(parameterTypes)
 
-        ir.emit(FunctionCallCode(IrOperation.CALLR, function, *arguments))
+        ir.emit(FunctionCallCode(IrOperation.CALL, function, *arguments))
     }
 
     fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
@@ -218,6 +218,12 @@ class IrGenerator(val parseStream: ParseStream,
             } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
         }
 
+        checkArgumentCompatibility(argumentsList, paramTypes)
+
+        return argumentsList.toTypedArray()
+    }
+
+    private fun checkArgumentCompatibility(argumentsList: MutableList<Symbol>, paramTypes: Array<ExpressionType>) {
         val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
 
         if (argumentsList.size != paramTypes.size) {
@@ -229,8 +235,6 @@ class IrGenerator(val parseStream: ParseStream,
                 throw SemanticException("expected params $paramTypes, found $argumentTypes")
             }
         }
-
-        return argumentsList.toTypedArray()
     }
 
     fun generateAssignmentStatement(lhs: Symbol) {

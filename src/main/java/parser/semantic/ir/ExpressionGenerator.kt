@@ -1,20 +1,17 @@
 package parser.semantic.ir
 
-import com.sun.corba.se.impl.naming.pcosnaming.ServantManagerImpl
-import com.sun.deploy.security.ValidationState
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
 import parser.semantic.symboltable.Attribute
 import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
+import parser.syntactic.NonTerminal
 import parser.syntactic.Rule
-import scanner.Token
 import scanner.TokenType
 
 class ExpressionGenerator(val symbolTable: SymbolTable,
                           val parseStream: ParseStream,
                           val irOutput: LinearIr) {
-    var currentRule = parseStream.nextRule()
     var expressionEndsToParse = 1
 
     fun generateAssignmentExpression(): Symbol {
@@ -29,14 +26,71 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
 
     fun parseFirstTerm(): Symbol {
         if (parseStream.nextRule() == Rule.EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
-            expressionParsing(null)
-        } else {
+            return expressionParsing(null)
 
+        } else {
+            if (parseStream.nextRule() == Rule.FUNCTION_INVOCATION_RULE) {
+                return generateFunctionInvocation()
+
+            } else {
+                return generateLValue()
+            }
+        }
+    }
+
+    private fun generateFunctionInvocation(): Symbol {
+        val functionNameToken = parseStream.nextParsableToken()
+        val result = symbolTable.newTemporary()
+
+        if (functionNameToken.grammarSymbol == TokenType.ID && functionNameToken.text != null) {
+            val functionSymbol = symbolTable.lookup(functionNameToken.text)
+
+            val functionSymbolType = functionSymbol.getAttribute(Attribute.TYPE)
+            if (functionSymbolType !is FunctionExpressionType) {
+                throw SemanticException("${functionSymbol.name} is not a function")
+            }
+
+            val arguments = generateArguments(functionSymbolType.params)
+
+            irOutput.emit(FunctionCallCode(result, IrOperation.CALLR, functionSymbol, *arguments))
+        } else {
+            throw RuntimeException("Expected token to be function name")
+        }
+
+        return result
+    }
+
+    fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
+        val argumentsList: MutableList<Symbol> = mutableListOf()
+
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
+            do {
+                argumentsList.add(expressionParsing(null))
+            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, TokenType.COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
+        }
+
+        checkArgumentCompatibility(argumentsList, paramTypes)
+
+        return argumentsList.toTypedArray()
+    }
+
+    private fun checkArgumentCompatibility(argumentsList: MutableList<Symbol>, paramTypes: Array<ExpressionType>) {
+        val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
+
+        if (argumentsList.size != paramTypes.size) {
+            throw SemanticException("expected params $paramTypes, found $argumentTypes")
+        }
+
+        paramTypes.forEachIndexed { i, paramType ->
+            if (paramType != argumentTypes[i]) {
+                throw SemanticException("expected params $paramTypes, found $argumentTypes")
+            }
         }
     }
 
     fun expressionParsing(lastValue: Symbol?): Symbol {
         val leftOperand: Symbol
+
 
         if (lastValue == null) {
             leftOperand = expressionParsing(null)
@@ -53,18 +107,22 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
             return generateOROperation(leftOperand, expressionParsing(null))
 
         } else if (operationRule == Rule.EQ_TERM_RULE) {
-            return generateEqualsOperation(leftOperand, expressionParsing(null))
+            return generateBooleanOperation(leftOperand, IrOperation.BREQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.NEQ_TERM_RULE) {
-            return generateNEQOperation(leftOperand, expressionParsing(null))
+            return generateBooleanOperation(leftOperand, IrOperation.BRNEQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.LESSER_TERM_RULE) {
+            return generateBooleanOperation(leftOperand, IrOperation.BRLT, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.GREATER_TERM_RULE) {
+            return generateBooleanOperation(leftOperand, IrOperation.BRGT, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.LESSEREQ_TERM_RULE) {
+            return generateBooleanOperation(leftOperand, IrOperation.BRLEQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.GREATEREQ_TERM_RULE) {
+            return generateBooleanOperation(leftOperand, IrOperation.BRGEQ, rightOperand = expressionParsing(null))
 
         } else if (operationRule == Rule.PLUS_TERM_RULE) {
             return generateADDOperation(leftOperand, expressionParsing(null))
@@ -91,6 +149,26 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         }
 
         throw RuntimeException("could not match rule found while parsing expression")
+    }
+
+    fun generateBooleanOperation(leftOperand: Symbol, op: IrOperation, rightOperand: Symbol): Symbol {
+        if (!isIntegerExpressionType(leftOperand) || !isIntegerExpressionType(rightOperand)) {
+            throw SemanticException("operands for ${op.name} instructions must be integers")
+        }
+
+        val result = symbolTable.newTemporary()
+        result.putAttribute(Attribute.TYPE, IntegerExpressionType())
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.ASSIGN, makeIntWithValue(1), null))
+
+        val skipAssigningZeroLabel = symbolTable.newLabel()
+        irOutput.emit(ThreeAddressCode(skipAssigningZeroLabel, op, leftOperand, rightOperand))
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.ASSIGN, makeIntWithValue(0), null))
+
+        irOutput.emit(skipAssigningZeroLabel)
+
+        return result
     }
 
     private fun generateConst(): Symbol {
@@ -129,7 +207,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         val index = generateAssignmentExpression()
 
         if (!isIntegerExpressionType(index)) {
-            throw SemanticException("array index must be an integer type");
+            throw SemanticException("array index must be an integer type")
         }
 
         val result = symbolTable.newTemporary()
@@ -190,10 +268,6 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         return resultType
     }
 
-    private fun generateNEQOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
-
-    }
-
     private fun generateOROperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
         if (!isIntegerExpressionType(leftOperand) || !isIntegerExpressionType(rightOperand)) {
             throw SemanticException("operands for OR instruction must be integers")
@@ -223,21 +297,6 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
     }
 
     private fun isIntegerExpressionType(leftOperand: Symbol) = leftOperand.getAttribute(Attribute.TYPE) is IntegerExpressionType
-
-    fun generateEqualsOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
-        if (!isIntegerExpressionType(leftOperand) || !isIntegerExpressionType(rightOperand)) {
-            throw SemanticException("operands for EQ instructions must be integers")
-        }
-
-        val difference = symbolTable.newTemporary()
-        difference.putAttribute(Attribute.TYPE, IntegerExpressionType())
-        irOutput.emit(ThreeAddressCode(difference, IrOperation.SUB, leftOperand, rightOperand))
-
-        
-
-        val skipAssigningZeroLabel = symbolTable.newLabel()
-        ir
-    }
 
     fun makeIntWithValue(value: Int): Symbol {
         val integer = symbolTable.newTemporary()
