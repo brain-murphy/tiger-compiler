@@ -19,13 +19,21 @@ class IrGenerator(private val parseStream: ParseStream,
     private val ir = LinearIr()
     private val loopEndStack = ArrayDeque<Label>()
 
-    fun takeAction(rule: Rule): Symbol {
-        if (rule == Rule.getRuleForExpansion(NonTerminal.TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI)) {
+    private var letCount = 1
+
+    private fun takeSemanticAction() {
+        val rule = parseStream.nextRule()
+
+        if (rule == TYPE_DECLARATION_RULE) {
             generateTypeDeclaration()
-        } else if (rule == Rule.getRuleForExpansion(NonTerminal.VAR_DECLARATION, VAR, NonTerminal.ID_LIST, COLON, NonTerminal.TYPE, NonTerminal.OPTIONAL_INIT, SEMI)) {
+        } else if (rule == VAR_DECLARATION_RULE) {
             generateVarDeclaration()
-        } else if (rule == Rule.getRuleForExpansion(NonTerminal.FUNCT_DECLARATION, FUNC, ID, LPAREN, NonTerminal.PARAM_LIST, RPAREN, NonTerminal.RET_TYPE, BEGIN, NonTerminal.STAT_SEQ, END, SEMI)) {
+        } else if (rule == FUNCTION_DECLARATION_RULE) {
             generateFunctionDeclaration()
+        } else if (rule == STAT_SEQUENCE_RULE) {
+            generateStatementSequence()
+        } else if (rule == LET_END_RULE) {
+            currentSymbolTable = currentSymbolTable.parentScope
         }
     }
 
@@ -184,7 +192,6 @@ class IrGenerator(private val parseStream: ParseStream,
     }
 
     fun generateStatementSequence() {
-
         do {
             val statementParseRule = parseStream.nextRule()
 
@@ -203,9 +210,30 @@ class IrGenerator(private val parseStream: ParseStream,
             } else if (statementParseRule == BREAK_STATEMENT_RULE) {
                 generateBreakStatement()
 
+            } else if (statementParseRule == RETURN_STATEMENT_RULE) {
+                generateReturnStatement()
+
+            } else if (statementParseRule == LET_STATEMENT_RULE) {
+                generateLetStatement()
             }
 
         } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_SEQ_TAIL, NonTerminal.STAT_SEQ))
+    }
+
+    private fun generateLetStatement() {
+        letCount += 1
+        val newScopeLabel = currentSymbolTable.newLabel()
+
+        ir.emit(newScopeLabel)
+
+        currentSymbolTable = currentSymbolTable.createChildScope(newScopeLabel)
+    }
+
+    private fun generateReturnStatement() {
+        val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
+        val expressionReturned = expressionGenerator.generateReducedExpression()
+
+        ir.emit(ThreeAddressCode(expressionReturned, IrOperation.RETURN, null, null))
     }
 
     private fun generateBreakStatement() {

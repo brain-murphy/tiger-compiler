@@ -52,7 +52,8 @@ public class Rule {
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, BREAK, SEMI),
                     new Rule(STAT, RETURN, EXPR, SEMI),
-                    new Rule(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END),
+                    new Rule(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, LET_END),
+                    new Rule(LET_END, END),
                     new Rule(STAT, LVALUE, STAT_ID),
                     new Rule(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
 
@@ -122,7 +123,8 @@ public class Rule {
     public static final Rule PARAM_LIST_TAIL_RULE = getRuleForExpansion(PARAM_LIST_TAIL, COMMA, PARAM, PARAM_LIST_TAIL);
     public static final Rule PARAM_LIST_END_RULE = getRuleForExpansion(PARAM_LIST_TAIL, NULL);
 
-    public static final Rule STAT_SEQUENCE_RULE = getRuleForExpansion(STAT_SEQ_TAIL, STAT_SEQ);
+    public static final Rule STAT_SEQUENCE_RULE = getRuleForExpansion(STAT_SEQ, STAT, STAT_SEQ_TAIL);
+    public static final Rule STAT_SEQUENCE_TAIL_RULE = getRuleForExpansion(STAT_SEQ_TAIL, STAT_SEQ);
     public static final Rule STAT_SEQUENCE_END_RULE = getRuleForExpansion(STAT_SEQ_TAIL, NULL);
 
     public static final Rule ID_STATMENT_START_RULE = getRuleForExpansion(STAT, LVALUE, STAT_ID);
@@ -157,6 +159,9 @@ public class Rule {
     public static final Rule WHILE_STATEMENT_RULE = getRuleForExpansion(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule FOR_STATEMENT_RULE = getRuleForExpansion(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule BREAK_STATEMENT_RULE = getRuleForExpansion(STAT, BREAK, SEMI);
+    public static final Rule RETURN_STATEMENT_RULE = getRuleForExpansion(STAT, RETURN, EXPR, SEMI);
+    public static final Rule LET_STATEMENT_RULE = getRuleForExpansion(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END);
+    public static final Rule LET_END_RULE = getRuleForExpansion(LET_END, END);
 
     // Keep in hashSet for faster lookup
     private static Set<Rule> ruleSet;
@@ -191,6 +196,7 @@ public class Rule {
                 PARAM_LIST_END_RULE,
 
                 STAT_SEQUENCE_RULE,
+                STAT_SEQUENCE_TAIL_RULE,
                 STAT_SEQUENCE_END_RULE,
                 ID_STATMENT_START_RULE,
 
@@ -226,8 +232,10 @@ public class Rule {
                 IF_STATMENT_RULE,
                 WHILE_STATEMENT_RULE,
                 FOR_STATEMENT_RULE,
-                BREAK_STATEMENT_RULE
-
+                BREAK_STATEMENT_RULE,
+                RETURN_STATEMENT_RULE,
+                LET_STATEMENT_RULE,
+                LET_END_RULE
         };
     }
 
