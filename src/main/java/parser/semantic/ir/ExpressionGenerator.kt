@@ -41,7 +41,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     /**
      * parses expressions where it is not necessary to account for it starting with a function invocation
      */
-    fun parseReducedExpression(): Symbol {
+    fun generateReducedExpression(): Symbol {
         var lastResult: Symbol? = null
 
         while (expressionEndsToParse > 0) {
@@ -121,7 +121,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         val result = symbolTable.newTemporary()
 
         if (functionNameToken.grammarSymbol == TokenType.ID && functionNameToken.text != null) {
-            val functionSymbol = symbolTable.lookup(functionNameToken.text)
+            val functionSymbol = symbolTable.lookup(functionNameToken.text) as Symbol
 
             val functionSymbolType = functionSymbol.getAttribute(Attribute.TYPE)
             if (functionSymbolType !is FunctionExpressionType) {
@@ -338,7 +338,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     private fun lookupSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
 
         if (parsableToken.grammarSymbol == TokenType.ID && parsableToken.text != null) {
-            return symbolTable.lookup(parsableToken.text)
+            return symbolTable.lookup(parsableToken.text) as Symbol
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }

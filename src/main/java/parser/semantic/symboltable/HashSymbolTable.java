@@ -2,26 +2,28 @@ package parser.semantic.symboltable;
 
 import parser.semantic.SemanticException;
 import parser.semantic.ir.Label;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class HashSymbolTable implements SymbolTable {
 
-    private static int nextTemporarySymbolId = 0;
+    private static int nextSymbolTableEntryId = 0;
 
     private static String makeTemporarySymbolId() {
-        return "$$" + nextTemporarySymbolId++;
+        return "$$" + nextSymbolTableEntryId++;
+    }
+    private static String makeLabelId() {
+        return "L" + nextSymbolTableEntryId++;
     }
 
-    private Map<String, Symbol> symbols;
-    private Map<Symbol, SymbolTable> children;
+    private Map<String, SymbolTableEntry> symbols;
+    private Map<SymbolTableEntry, SymbolTable> children;
 
     private SymbolTable parent;
-    private Symbol symbolDefiningScope;
+    private SymbolTableEntry symbolDefiningScope;
 
-    public HashSymbolTable(SymbolTable parent, Symbol symbolDefiningScope) {
+    public HashSymbolTable(SymbolTable parent, SymbolTableEntry symbolDefiningScope) {
         this.parent = parent;
         this.symbolDefiningScope = symbolDefiningScope;
 
@@ -35,12 +37,12 @@ public class HashSymbolTable implements SymbolTable {
     }
 
     @Override
-    public SymbolTable getChildScope(Symbol symbolDefiningChildScope) {
+    public SymbolTable getChildScope(SymbolTableEntry symbolDefiningChildScope) {
         return children.get(symbolDefiningChildScope);
     }
 
     @Override
-    public Symbol lookup(String name) {
+    public SymbolTableEntry lookup(String name) {
         HashSymbolTable currentTable = this;
 
         do {
@@ -53,7 +55,7 @@ public class HashSymbolTable implements SymbolTable {
     }
 
     @Override
-    public void insert(Symbol symbol) {
+    public void insert(SymbolTableEntry symbol) {
         if (symbols.containsKey(symbol.getName())) {
             throw new SemanticException("Symbol table already contains symbol with name " + symbol.getName());
         }
@@ -62,7 +64,7 @@ public class HashSymbolTable implements SymbolTable {
     }
 
     @Override
-    public SymbolTable createChildScope(Symbol symbolDefiningChildScope) {
+    public SymbolTable createChildScope(SymbolTableEntry symbolDefiningChildScope) {
         if (!symbols.containsKey(symbolDefiningChildScope.getName())) {
             throw new SemanticException("Symbol table does not contain a symbol with name "
                     + symbolDefiningChildScope.getName() + " and cannot create child scope.");
@@ -91,7 +93,11 @@ public class HashSymbolTable implements SymbolTable {
 
     @Override
     public Label newLabel() {
-        throw new NotImplementedException();
+        Label label = new Label(makeLabelId());
+
+        insert(label);
+
+        return label;
     }
 
 }

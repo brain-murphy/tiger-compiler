@@ -9,13 +9,13 @@ public interface SymbolTable {
 
     SymbolTable getParentScope();
 
-    SymbolTable getChildScope(Symbol symbolDefiningChildScope);
+    SymbolTable getChildScope(SymbolTableEntry symbolDefiningChildScope);
 
-    Symbol lookup(String name);
+    SymbolTableEntry lookup(String name);
 
-    void insert(Symbol symbol);
+    void insert(SymbolTableEntry symbol);
 
-    SymbolTable createChildScope(Symbol symbolDefiningChildScope);
+    SymbolTable createChildScope(SymbolTableEntry symbolDefiningChildScope);
 
     Symbol newTemporary();
 

@@ -8,13 +8,16 @@ import parser.syntactic.Rule
 import scanner.TokenType
 import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
+import parser.syntactic.Rule.*
 
 import scanner.TokenType.*
+import java.util.*
 
 class IrGenerator(private val parseStream: ParseStream,
                   private var currentSymbolTable: SymbolTable) {
 
-    val ir = LinearIr()
+    private val ir = LinearIr()
+    private val loopEndStack = ArrayDeque<Label>()
 
     fun takeAction(rule: Rule): Symbol {
         if (rule == Rule.getRuleForExpansion(NonTerminal.TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI)) {
@@ -82,7 +85,7 @@ class IrGenerator(private val parseStream: ParseStream,
         val typeToken = parseStream.nextParsableToken()
 
         if (typeToken.grammarSymbol == ID && typeToken.text != null) {
-            val typeSymbol = currentSymbolTable.lookup(typeToken.text)
+            val typeSymbol = currentSymbolTable.lookup(typeToken.text) as Symbol
 
             return typeSymbol.getAttribute(Attribute.TYPE) as ExpressionType
         } else {
@@ -181,27 +184,133 @@ class IrGenerator(private val parseStream: ParseStream,
     fun generateStatementSequence() {
 
         do {
-            generateStatement()
+            val statementParseRule = parseStream.nextRule()
+
+            if (statementParseRule == ID_STATMENT_START_RULE) {
+                generateStatementStartingWithId()
+
+            } else if (statementParseRule == IF_STATMENT_RULE) {
+                generateIfStatement()
+
+            } else if (statementParseRule == WHILE_STATEMENT_RULE) {
+                generateWhileStatement()
+
+            } else if (statementParseRule == FOR_STATEMENT_RULE) {
+                generateForStatement()
+
+            } else if (statementParseRule == BREAK_STATEMENT_RULE) {
+                generateBreakStatement()
+
+            }
+
         } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.STAT_SEQ_TAIL, NonTerminal.STAT_SEQ))
     }
 
-    fun generateStatement() {
-        val statementParseRule = parseStream.nextRule()
+    private fun generateBreakStatement() {
+        if (loopEndStack.size == 0) {
+            throw SemanticException("break statement must be enclosed by a loop")
+        }
 
-        if (statementParseRule == Rule.getRuleForExpansion(NonTerminal.STAT, NonTerminal.LVALUE, NonTerminal.STAT_ID)) {
+        ir.emit(ThreeAddressCode())
+    }
 
-            if (parseStream.nextRule() == Rule.ARRAY_INDEX_RULE) {
-                generateArrayStatement()
+    private fun generateForStatement() {
+        val indexVariable = generateIndexInitialization()
+
+        val endExpression = generateEndIndex()
+
+        val startOfLoopLabel = currentSymbolTable.newLabel()
+        ir.emit(startOfLoopLabel)
+
+        val endOfLoopLabel = currentSymbolTable.newLabel()
+        loopEndStack.push(endOfLoopLabel)
+
+        ir.emit(ThreeAddressCode(endOfLoopLabel, IrOperation.BRGT, indexVariable, endExpression))
+
+        generateStatementSequence()
+
+        ir.emit(ThreeAddressCode(indexVariable, IrOperation.ADD, indexVariable, makeIntWithValue(1)))
+
+        ir.emit(ThreeAddressCode(startOfLoopLabel, IrOperation.BREQ, endExpression, endExpression))
+
+        ir.emit(endOfLoopLabel)
+    }
+
+    private fun generateEndIndex(): Symbol {
+        val endExpressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
+        val endExpression = endExpressionGenerator.generateReducedExpression()
+
+        if (!isIntegerExpressionType(endExpression)) {
+            throw SemanticException("end condition of for loop must have integer expression type")
+        }
+        return endExpression
+    }
+
+    private fun generateIndexInitialization(): Symbol {
+        val conditionalVariable = nextIdAsSymbol()
+        val initializationExpressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
+        val initializationExpression = initializationExpressionGenerator.generateReducedExpression()
+
+        if (!isIntegerExpressionType(initializationExpression)) {
+            throw SemanticException("initialization of for loop must have integer expression type")
+        }
+
+        ir.emit(ThreeAddressCode(conditionalVariable, IrOperation.ASSIGN, initializationExpression, null))
+        return conditionalVariable
+    }
+
+    private fun generateWhileStatement() {
+        val zeroSymbol = makeIntWithValue(0)
+
+        val startOfLoopLabel = currentSymbolTable.newLabel()
+        ir.emit(startOfLoopLabel)
+
+        val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
+        val conditionalExpression = expressionGenerator.generateReducedExpression()
+
+        val endOfLoopLabel = currentSymbolTable.newLabel()
+        loopEndStack.push(endOfLoopLabel)
+
+        ir.emit(ThreeAddressCode(endOfLoopLabel, IrOperation.BREQ, conditionalExpression, zeroSymbol))
+
+        generateStatementSequence()
+
+        ir.emit(ThreeAddressCode(startOfLoopLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol))
+
+        ir.emit(endOfLoopLabel)
+    }
+
+    private fun generateIfStatement() {
+        val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
+        val conditionalExpression = expressionGenerator.generateReducedExpression()
+
+        if (isIntegerExpressionType(conditionalExpression)) {
+            val zeroSymbol = makeIntWithValue(0)
+            val endIfLabel = currentSymbolTable.newLabel()
+
+            ir.emit(ThreeAddressCode(endIfLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression))
+
+            generateStatementSequence()
+
+            ir.emit(endIfLabel)
+
+        } else {
+            throw SemanticException("conditional expression must have integer type")
+        }
+    }
+
+    fun generateStatementStartingWithId() {
+        if (parseStream.nextRule() == Rule.ARRAY_INDEX_RULE) {
+            generateArrayStatement()
+        } else {
+
+            val baseSymbol = lookupNextId()
+
+            if (parseStream.nextRule() == Rule.FUNCTION_INVOCATION_RULE) {
+                generateFunctionCallAsStatement(baseSymbol)
+
             } else {
-
-                val baseSymbol = lookupNextId()
-
-                if (parseStream.nextRule() == Rule.FUNCTION_INVOCATION_RULE) {
-                    generateFunctionCallAsStatement(baseSymbol)
-
-                } else {
-                    generateAssignmentStatement(baseSymbol)
-                }
+                generateAssignmentStatement(baseSymbol)
             }
         }
     }
@@ -242,7 +351,7 @@ class IrGenerator(private val parseStream: ParseStream,
         if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
             do {
                 val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-                argumentsList.add(expressionGenerator.parseReducedExpression())
+                argumentsList.add(expressionGenerator.generateReducedExpression())
 
             } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
         }
@@ -277,7 +386,7 @@ class IrGenerator(private val parseStream: ParseStream,
     private fun generateArrayIndex(): Symbol {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
 
-        val expressionValue = expressionGenerator.parseReducedExpression()
+        val expressionValue = expressionGenerator.generateReducedExpression()
         if (!isIntegerExpressionType(expressionValue)) {
             throw SemanticException("array index must be integer expression")
         }
@@ -310,7 +419,7 @@ class IrGenerator(private val parseStream: ParseStream,
         val parsableToken = parseStream.nextParsableToken()
 
         if (parsableToken.grammarSymbol == ID && parsableToken.text != null) {
-            return currentSymbolTable.lookup(parsableToken.text)
+            return currentSymbolTable.lookup(parsableToken.text) as Symbol
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }
@@ -324,6 +433,15 @@ class IrGenerator(private val parseStream: ParseStream,
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }
+    }
 
+    private fun makeIntWithValue(value: Int): Symbol {
+        val integer = currentSymbolTable.newTemporary()
+
+        integer.putAttribute(Attribute.TYPE, IntegerExpressionType())
+        integer.putAttribute(Attribute.IS_LITERAL, true)
+        integer.putAttribute(Attribute.LITERAL_VALUE, value)
+
+        return integer
     }
 }

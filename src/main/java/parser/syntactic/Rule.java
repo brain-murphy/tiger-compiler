@@ -153,6 +153,11 @@ public class Rule {
     public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
     public static final Rule VARIABLE_VALUE_RULE = getRuleForExpansion(LVALUE_TAIL, NULL);
 
+    public static final Rule IF_STATMENT_RULE = getRuleForExpansion(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI);
+    public static final Rule WHILE_STATEMENT_RULE = getRuleForExpansion(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
+    public static final Rule FOR_STATEMENT_RULE = getRuleForExpansion(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
+    public static final Rule BREAK_STATEMENT_RULE = getRuleForExpansion(STAT, BREAK, SEMI);
+
     // Keep in hashSet for faster lookup
     private static Set<Rule> ruleSet;
     public static Set<Rule> RULES_FOR_PARSING;
@@ -216,7 +221,12 @@ public class Rule {
                 LVALUE_TERM_RULE,
                 EXPR_END_RULE,
                 ARRAY_INDEX_RULE,
-                VARIABLE_VALUE_RULE
+                VARIABLE_VALUE_RULE,
+
+                IF_STATMENT_RULE,
+                WHILE_STATEMENT_RULE,
+                FOR_STATEMENT_RULE,
+                BREAK_STATEMENT_RULE
 
         };
     }
