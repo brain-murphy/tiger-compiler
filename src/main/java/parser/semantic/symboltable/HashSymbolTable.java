@@ -10,6 +10,10 @@ public class HashSymbolTable implements SymbolTable {
 
     private static int nextSymbolTableEntryId = 0;
 
+    public HashSymbolTable() {
+        this(null, null);
+    }
+
     private static String makeTemporarySymbolId() {
         return "$$" + nextSymbolTableEntryId++;
     }

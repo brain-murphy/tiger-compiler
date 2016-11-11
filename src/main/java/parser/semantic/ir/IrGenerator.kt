@@ -4,6 +4,7 @@ import parser.syntactic.NonTerminal
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
 import parser.semantic.symboltable.Attribute
+import parser.semantic.symboltable.HashSymbolTable
 import parser.syntactic.Rule
 import scanner.TokenType
 import parser.semantic.symboltable.Symbol
@@ -13,13 +14,27 @@ import parser.syntactic.Rule.*
 import scanner.TokenType.*
 import java.util.*
 
-class IrGenerator(private val parseStream: ParseStream,
-                  private var currentSymbolTable: SymbolTable) {
+class IrGenerator(private val parseStream: ParseStream) {
 
+    private var currentSymbolTable: SymbolTable = HashSymbolTable()
     private val ir = LinearIr()
     private val loopEndStack = ArrayDeque<Label>()
 
     private var letCount = 1
+
+    public fun run()  {
+        while(letCount > 0) {
+            takeSemanticAction()
+        }
+    }
+
+    fun getIR(): LinearIr {
+        return ir
+    }
+
+    fun getSymbolTable(): SymbolTable {
+        return currentSymbolTable
+    }
 
     private fun takeSemanticAction() {
         val rule = parseStream.nextRule()

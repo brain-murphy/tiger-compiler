@@ -17,11 +17,5 @@ public class Start {
         } else {
             programContent = reader.readFromStandardIn();
         }
-
-        Scanner scanner = new DirectScanner(programContent);
-
-        Parser parser = new Parser(scanner);
-
-        parser.parse();
     }
 }
