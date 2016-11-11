@@ -103,6 +103,33 @@ public class Rule {
                     new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
             };
 
+    public static final Rule TYPE_DECLARATION_RULE = getRuleForExpansion(TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI);
+    public static final Rule BASE_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, TYPE_ID);
+    public static final Rule ARRAY_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID);
+    public static final Rule USER_DEFINED_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, ID);
+
+    public static final Rule VAR_DECLARATION_RULE = getRuleForExpansion(NonTerminal.VAR_DECLARATION, VAR, NonTerminal.ID_LIST, COLON, NonTerminal.TYPE, NonTerminal.OPTIONAL_INIT, SEMI);
+    public static final Rule VAR_LIST_TAIL_RULE = getRuleForExpansion(NonTerminal.ID_LIST_TAIL, COMMA, NonTerminal.ID_LIST);
+    public static final Rule VAR_LIST_END_RULE = getRuleForExpansion(ID_LIST_TAIL, NULL);
+    public static final Rule OPTIONAL_INIT_RULE = getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST);
+    public static final Rule NO_OPTIONAL_INIT_RULE = getRuleForExpansion(OPTIONAL_INIT, NULL);
+
+    public static final Rule FUNCTION_DECLARATION_RULE = getRuleForExpansion(FUNCT_DECLARATION, FUNC, ID, LPAREN, PARAM_LIST, RPAREN, RET_TYPE, BEGIN, STAT_SEQ, END, SEMI);
+    public static final Rule RETURN_TYPE_RULE = getRuleForExpansion(RET_TYPE, COLON, NonTerminal.TYPE);
+    public static final Rule NO_RETURN_TYPE_RULE = getRuleForExpansion(RET_TYPE, NULL);
+    public static final Rule PARAM_LIST_RULE = getRuleForExpansion(PARAM_LIST, PARAM, PARAM_LIST_TAIL);
+    public static final Rule NO_PARAM_LIST_RULE = getRuleForExpansion(PARAM_LIST, NULL);
+    public static final Rule PARAM_LIST_TAIL_RULE = getRuleForExpansion(PARAM_LIST_TAIL, COMMA, PARAM, PARAM_LIST_TAIL);
+    public static final Rule PARAM_LIST_END_RULE = getRuleForExpansion(PARAM_LIST_TAIL, NULL);
+
+    public static final Rule STAT_SEQUENCE_RULE = getRuleForExpansion(STAT_SEQ_TAIL, STAT_SEQ);
+    public static final Rule STAT_SEQUENCE_END_RULE = getRuleForExpansion(STAT_SEQ_TAIL, NULL);
+
+    public static final Rule ID_STATMENT_START_RULE = getRuleForExpansion(STAT, LVALUE, STAT_ID);
+    public static final Rule FUNCTION_STATEMENT_START_RULE = getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI);
+    public static final Rule ASSIGNMENT_STATEMENT_RULE = getRuleForExpansion(STAT_ID, ASSIGN, STAT_TAIL, SEMI);
+
+    public static final Rule EXPRESSION_INVOCATION_RULE = getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI);
     public static final Rule EXPRESSION_NOT_STARTING_WITH_ID_RULE = getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID);
     public static final Rule EXPRESSION_OR_FUNCTION_START_RULE = getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL);
     public static final Rule FUNCTION_INVOCATION_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN);
@@ -124,6 +151,7 @@ public class Rule {
     public static final Rule PAREN_TERM_RULE = getRuleForExpansion(EXPR_LIST, EXPR, EXPR_LIST_TAIL);
     public static final Rule EXPR_END_RULE = getRuleForExpansion(EXPR_TAIL, NULL);
     public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
+    public static final Rule VARIABLE_VALUE_RULE = getRuleForExpansion(LVALUE_TAIL, NULL);
 
     // Keep in hashSet for faster lookup
     private static Set<Rule> ruleSet;
@@ -138,39 +166,57 @@ public class Rule {
 
     private static Rule[] getAllParsingRules() {
         return new Rule[] {
-                getRuleForExpansion(TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI),
-                getRuleForExpansion(NonTerminal.TYPE, TYPE_ID),
-                getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID),
-                getRuleForExpansion(NonTerminal.TYPE, ID),
+                TYPE_DECLARATION_RULE,
+                BASE_TYPE_RULE,
+                ARRAY_TYPE_RULE,
+                USER_DEFINED_TYPE_RULE,
 
-                getRuleForExpansion(NonTerminal.VAR_DECLARATION, VAR, NonTerminal.ID_LIST, COLON, NonTerminal.TYPE, NonTerminal.OPTIONAL_INIT, SEMI),
-                getRuleForExpansion(NonTerminal.ID_LIST_TAIL, COMMA, NonTerminal.ID_LIST),
-                getRuleForExpansion(ID_LIST_TAIL, NULL),
-                getRuleForExpansion(NonTerminal.OPTIONAL_INIT, ASSIGN, NonTerminal.CONST),
-                getRuleForExpansion(OPTIONAL_INIT, NULL),
+                VAR_DECLARATION_RULE,
+                VAR_LIST_TAIL_RULE,
+                VAR_LIST_END_RULE,
+                OPTIONAL_INIT_RULE,
+                NO_OPTIONAL_INIT_RULE,
 
-                getRuleForExpansion(FUNCT_DECLARATION, FUNC, ID, LPAREN, PARAM_LIST, RPAREN, RET_TYPE, BEGIN, STAT_SEQ, END, SEMI),
-                getRuleForExpansion(RET_TYPE, COLON, NonTerminal.TYPE),
-                getRuleForExpansion(RET_TYPE, NULL),
-                getRuleForExpansion(PARAM_LIST, PARAM, PARAM_LIST_TAIL),
-                getRuleForExpansion(PARAM_LIST, NULL),
-                getRuleForExpansion(PARAM_LIST_TAIL, COMMA, PARAM, PARAM_LIST_TAIL),
-                getRuleForExpansion(PARAM_LIST_TAIL, NULL),
+                FUNCTION_DECLARATION_RULE,
+                RETURN_TYPE_RULE,
+                NO_RETURN_TYPE_RULE,
+                PARAM_LIST_RULE,
+                NO_PARAM_LIST_RULE,
+                PARAM_LIST_TAIL_RULE,
+                PARAM_LIST_END_RULE,
 
-                getRuleForExpansion(STAT_SEQ_TAIL, STAT_SEQ),
-                getRuleForExpansion(STAT_SEQ_TAIL, NULL),
-                getRuleForExpansion(STAT, LVALUE, STAT_ID),
+                STAT_SEQUENCE_RULE,
+                STAT_SEQUENCE_END_RULE,
+                ID_STATMENT_START_RULE,
 
-                getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK),
-                getRuleForExpansion(LVALUE_TAIL, NULL),
-                getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI),
-                getRuleForExpansion(STAT_ID, ASSIGN, STAT_TAIL, SEMI),
+                ARRAY_INDEX_RULE,
+                VARIABLE_VALUE_RULE,
+                FUNCTION_STATEMENT_START_RULE,
+                ASSIGNMENT_STATEMENT_RULE,
 
-                getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID),
-                getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL),
-                getRuleForExpansion(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN),
-                getRuleForExpansion(EXPR_OR_FUNC_TAIL, LVALUE_TAIL, C_TERM_TAIL, B_TERM_TAIL, A_TERM_TAIL, EXPR_TAIL),
+                EXPRESSION_INVOCATION_RULE,
+                EXPRESSION_NOT_STARTING_WITH_ID_RULE,
+                EXPRESSION_OR_FUNCTION_START_RULE,
+                FUNCTION_INVOCATION_RULE,
+                LVALUE_EXPRESSION_START_RULE,
 
+                AND_TERM_RULE,
+                OR_TERM_RULE,
+                EQ_TERM_RULE,
+                NEQ_TERM_RULE,
+                LESSER_TERM_RULE,
+                GREATER_TERM_RULE,
+                LESSEREQ_TERM_RULE,
+                GREATEREQ_TERM_RULE,
+                PLUS_TERM_RULE,
+                MINUS_TERM_RULE,
+                MULT_TERM_RULE,
+                CONST_TERM_RULE,
+                PAREN_TERM_RULE,
+                LVALUE_TERM_RULE,
+                EXPR_END_RULE,
+                ARRAY_INDEX_RULE,
+                VARIABLE_VALUE_RULE
 
         };
     }

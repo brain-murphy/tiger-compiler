@@ -9,13 +9,13 @@ import parser.syntactic.NonTerminal
 import parser.syntactic.Rule
 import scanner.TokenType
 
-class ExpressionGenerator(val symbolTable: SymbolTable,
-                          val parseStream: ParseStream,
-                          val irOutput: LinearIr) {
-    var expressionEndsToParse = 1
+class ExpressionGenerator(private val symbolTable: SymbolTable,
+                          private val parseStream: ParseStream,
+                          private val irOutput: LinearIr) {
+    private var expressionEndsToParse = 1
 
     fun generateAssignmentExpression(): Symbol {
-        var lastResult: Symbol = parseFirstTerm()
+        var lastResult = parseFirstTerm()
 
         while (expressionEndsToParse > 0) {
             lastResult = expressionParsing(lastResult)
@@ -24,7 +24,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         return lastResult
     }
 
-    fun parseFirstTerm(): Symbol {
+    private fun parseFirstTerm(): Symbol {
         if (parseStream.nextRule() == Rule.EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
             return expressionParsing(null)
 
@@ -38,57 +38,20 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         }
     }
 
-    private fun generateFunctionInvocation(): Symbol {
-        val functionNameToken = parseStream.nextParsableToken()
-        val result = symbolTable.newTemporary()
+    /**
+     * parses expressions where it is not necessary to account for it starting with a function invocation
+     */
+    fun parseReducedExpression(): Symbol {
+        var lastResult: Symbol? = null
 
-        if (functionNameToken.grammarSymbol == TokenType.ID && functionNameToken.text != null) {
-            val functionSymbol = symbolTable.lookup(functionNameToken.text)
-
-            val functionSymbolType = functionSymbol.getAttribute(Attribute.TYPE)
-            if (functionSymbolType !is FunctionExpressionType) {
-                throw SemanticException("${functionSymbol.name} is not a function")
-            }
-
-            val arguments = generateArguments(functionSymbolType.params)
-
-            irOutput.emit(FunctionCallCode(result, IrOperation.CALLR, functionSymbol, *arguments))
-        } else {
-            throw RuntimeException("Expected token to be function name")
+        while (expressionEndsToParse > 0) {
+            lastResult = expressionParsing(lastResult)
         }
 
-        return result
+        return lastResult!!
     }
 
-    fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
-        val argumentsList: MutableList<Symbol> = mutableListOf()
-
-        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
-            do {
-                argumentsList.add(expressionParsing(null))
-            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, TokenType.COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
-        }
-
-        checkArgumentCompatibility(argumentsList, paramTypes)
-
-        return argumentsList.toTypedArray()
-    }
-
-    private fun checkArgumentCompatibility(argumentsList: MutableList<Symbol>, paramTypes: Array<ExpressionType>) {
-        val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
-
-        if (argumentsList.size != paramTypes.size) {
-            throw SemanticException("expected params $paramTypes, found $argumentTypes")
-        }
-
-        paramTypes.forEachIndexed { i, paramType ->
-            if (paramType != argumentTypes[i]) {
-                throw SemanticException("expected params $paramTypes, found $argumentTypes")
-            }
-        }
-    }
-
-    fun expressionParsing(lastValue: Symbol?): Symbol {
+    private fun expressionParsing(lastValue: Symbol?): Symbol {
         val leftOperand: Symbol
 
 
@@ -151,7 +114,61 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         throw RuntimeException("could not match rule found while parsing expression")
     }
 
-    fun generateBooleanOperation(leftOperand: Symbol, op: IrOperation, rightOperand: Symbol): Symbol {
+
+
+    private fun generateFunctionInvocation(): Symbol {
+        val functionNameToken = parseStream.nextParsableToken()
+        val result = symbolTable.newTemporary()
+
+        if (functionNameToken.grammarSymbol == TokenType.ID && functionNameToken.text != null) {
+            val functionSymbol = symbolTable.lookup(functionNameToken.text)
+
+            val functionSymbolType = functionSymbol.getAttribute(Attribute.TYPE)
+            if (functionSymbolType !is FunctionExpressionType) {
+                throw SemanticException("${functionSymbol.name} is not a function")
+            }
+
+            val arguments = generateArguments(functionSymbolType.params)
+
+            irOutput.emit(FunctionCallCode(result, IrOperation.CALLR, functionSymbol, *arguments))
+        } else {
+            throw RuntimeException("Expected token to be function name")
+        }
+
+        return result
+    }
+
+    private fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
+        val argumentsList: MutableList<Symbol> = mutableListOf()
+
+        if (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL)) {
+            do {
+                val expressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
+                argumentsList.add(expressionGenerator.expressionParsing(null))
+
+            } while (parseStream.nextRule() == Rule.getRuleForExpansion(NonTerminal.EXPR_LIST_TAIL, TokenType.COMMA, NonTerminal.EXPR, NonTerminal.EXPR_LIST_TAIL))
+        }
+
+        checkArgumentCompatibility(argumentsList, paramTypes)
+
+        return argumentsList.toTypedArray()
+    }
+
+    private fun checkArgumentCompatibility(argumentsList: MutableList<Symbol>, paramTypes: Array<ExpressionType>) {
+        val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
+
+        if (argumentsList.size != paramTypes.size) {
+            throw SemanticException("expected params $paramTypes, found $argumentTypes")
+        }
+
+        paramTypes.forEachIndexed { i, paramType ->
+            if (paramType != argumentTypes[i]) {
+                throw SemanticException("expected params $paramTypes, found $argumentTypes")
+            }
+        }
+    }
+
+    private fun generateBooleanOperation(leftOperand: Symbol, op: IrOperation, rightOperand: Symbol): Symbol {
         if (!isIntegerExpressionType(leftOperand) || !isIntegerExpressionType(rightOperand)) {
             throw SemanticException("operands for ${op.name} instructions must be integers")
         }
@@ -282,7 +299,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         return result
     }
 
-    fun generateANDOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
+    private fun generateANDOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
         if (!isIntegerExpressionType(leftOperand) || !isIntegerExpressionType(rightOperand)) {
             throw SemanticException("operands for AND instruction must be integers")
         }
@@ -298,7 +315,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
 
     private fun isIntegerExpressionType(leftOperand: Symbol) = leftOperand.getAttribute(Attribute.TYPE) is IntegerExpressionType
 
-    fun makeIntWithValue(value: Int): Symbol {
+    private fun makeIntWithValue(value: Int): Symbol {
         val integer = symbolTable.newTemporary()
 
         integer.putAttribute(Attribute.TYPE, IntegerExpressionType())
@@ -308,7 +325,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         return integer
     }
 
-    fun makeFloatWithValue(value: Float): Symbol {
+    private fun makeFloatWithValue(value: Float): Symbol {
         val float = symbolTable.newTemporary()
 
         float.putAttribute(Attribute.TYPE, FloatExpressionType())
@@ -318,7 +335,7 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         return float
     }
 
-    fun lookupSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
+    private fun lookupSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
 
         if (parsableToken.grammarSymbol == TokenType.ID && parsableToken.text != null) {
             return symbolTable.lookup(parsableToken.text)
@@ -327,7 +344,5 @@ class ExpressionGenerator(val symbolTable: SymbolTable,
         }
 
     }
-
-
 }
 
