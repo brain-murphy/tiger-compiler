@@ -17,14 +17,14 @@ public class TestParsingTable {
         ParsingTable parsingTable = new ParsingTable(Rule.ALL_RULES, true);
     }
 
-    @Test
-    public void testPrintParsingTable() {
-        Scanner scanner = new DirectScanner(TestDirectScanner.SAMPLE_PROGRAM_TEXT);
-
-        Parser parser = new Parser(scanner);
-
-        System.out.println(parser.parsingTable.toString());
-    }
+//    @Test
+//    public void testPrintParsingTable() {
+//        Scanner scanner = new DirectScanner(TestDirectScanner.SAMPLE_PROGRAM_TEXT);
+//
+//        Parser parser = new Parser(scanner);
+//
+//        System.out.println(parser.parsingTable.toString());
+//    }
 
     @Test
     public void printRules() {

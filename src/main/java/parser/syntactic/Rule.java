@@ -104,6 +104,24 @@ public class Rule {
                     new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
             };
 
+    // Keep in hashSet for faster lookup
+    private static Set<Rule> ruleSet;
+    public static Set<Rule> RULES_FOR_PARSING;
+    static {
+        ruleSet = new HashSet<>(ALL_RULES.length);
+        Collections.addAll(ruleSet, ALL_RULES);
+    }
+
+    public static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
+        Rule rule = new Rule(nonTerminalExpanded, expansion);
+
+        if (ruleSet.contains(rule)) {
+            return rule;
+        } else {
+            throw new RuntimeException("cannot find rule: " + rule.toString());
+        }
+    }
+
     public static final Rule TYPE_DECLARATION_RULE = getRuleForExpansion(TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI);
     public static final Rule BASE_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, TYPE_ID);
     public static final Rule ARRAY_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID);
@@ -160,21 +178,10 @@ public class Rule {
     public static final Rule FOR_STATEMENT_RULE = getRuleForExpansion(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule BREAK_STATEMENT_RULE = getRuleForExpansion(STAT, BREAK, SEMI);
     public static final Rule RETURN_STATEMENT_RULE = getRuleForExpansion(STAT, RETURN, EXPR, SEMI);
-    public static final Rule LET_STATEMENT_RULE = getRuleForExpansion(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, END);
+    public static final Rule LET_STATEMENT_RULE = getRuleForExpansion(STAT, LET, DECLARATION_SEGMENT, IN, STAT_SEQ, LET_END);
     public static final Rule LET_END_RULE = getRuleForExpansion(LET_END, END);
 
-    // Keep in hashSet for faster lookup
-    private static Set<Rule> ruleSet;
-    public static Set<Rule> RULES_FOR_PARSING;
-    static {
-        ruleSet = new HashSet<>(ALL_RULES.length);
-        Collections.addAll(ruleSet, ALL_RULES);
-
-        RULES_FOR_PARSING = new HashSet<>();
-        Collections.addAll(RULES_FOR_PARSING, getAllParsingRules());
-    }
-
-    private static Rule[] getAllParsingRules() {
+    private static Rule[] getUsefulParsingRules() {
         return new Rule[] {
                 TYPE_DECLARATION_RULE,
                 BASE_TYPE_RULE,
@@ -239,13 +246,9 @@ public class Rule {
         };
     }
 
-    public static Rule getRuleForExpansion(NonTerminal nonTerminalExpanded, GrammarSymbol... expansion) {
-        Rule rule = new Rule(nonTerminalExpanded, expansion);
-        if (ruleSet.contains(rule)) {
-            return rule;
-        } else {
-            throw new RuntimeException("cannot find rule");
-        }
+    static {
+        RULES_FOR_PARSING = new HashSet<>();
+        Collections.addAll(RULES_FOR_PARSING, getUsefulParsingRules());
     }
 
     private NonTerminal nonTerminalExpanded;

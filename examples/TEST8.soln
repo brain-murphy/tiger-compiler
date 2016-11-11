@@ -1,0 +1,17 @@
+/* type of function and variable do not match, wrong */
+let
+        var a : float;
+        function print ( n : int) : int begin
+                printi(n);
+        end;
+in
+        a := print(a);
+end
+
+/*
+print:
+call, printi, n
+end:
+
+callr, a, print, a
+*/
