@@ -148,6 +148,8 @@ class IrGenerator(private val parseStream: ParseStream,
         currentSymbolTable = currentSymbolTable.createChildScope(functionSymbol)
 
         generateStatementSequence()
+
+        currentSymbolTable = currentSymbolTable.parentScope
     }
 
     fun calculateFunctionType(): FunctionExpressionType {
@@ -211,15 +213,19 @@ class IrGenerator(private val parseStream: ParseStream,
             throw SemanticException("break statement must be enclosed by a loop")
         }
 
-        ir.emit(ThreeAddressCode())
+        val zeroSymbol = makeIntWithValue(0)
+
+        ir.emit(ThreeAddressCode(loopEndStack.pop(), IrOperation.BREQ, zeroSymbol, zeroSymbol))
     }
 
     private fun generateForStatement() {
+        val startOfLoopLabel = currentSymbolTable.newLabel()
+        currentSymbolTable = currentSymbolTable.createChildScope(startOfLoopLabel)
+
         val indexVariable = generateIndexInitialization()
 
         val endExpression = generateEndIndex()
 
-        val startOfLoopLabel = currentSymbolTable.newLabel()
         ir.emit(startOfLoopLabel)
 
         val endOfLoopLabel = currentSymbolTable.newLabel()
@@ -232,6 +238,8 @@ class IrGenerator(private val parseStream: ParseStream,
         ir.emit(ThreeAddressCode(indexVariable, IrOperation.ADD, indexVariable, makeIntWithValue(1)))
 
         ir.emit(ThreeAddressCode(startOfLoopLabel, IrOperation.BREQ, endExpression, endExpression))
+
+        currentSymbolTable = currentSymbolTable.parentScope
 
         ir.emit(endOfLoopLabel)
     }
@@ -263,6 +271,7 @@ class IrGenerator(private val parseStream: ParseStream,
         val zeroSymbol = makeIntWithValue(0)
 
         val startOfLoopLabel = currentSymbolTable.newLabel()
+        currentSymbolTable = currentSymbolTable.createChildScope(startOfLoopLabel)
         ir.emit(startOfLoopLabel)
 
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
@@ -277,6 +286,7 @@ class IrGenerator(private val parseStream: ParseStream,
 
         ir.emit(ThreeAddressCode(startOfLoopLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol))
 
+        currentSymbolTable = currentSymbolTable.parentScope
         ir.emit(endOfLoopLabel)
     }
 
@@ -287,11 +297,13 @@ class IrGenerator(private val parseStream: ParseStream,
         if (isIntegerExpressionType(conditionalExpression)) {
             val zeroSymbol = makeIntWithValue(0)
             val endIfLabel = currentSymbolTable.newLabel()
+            currentSymbolTable = currentSymbolTable.createChildScope(endIfLabel)
 
             ir.emit(ThreeAddressCode(endIfLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression))
 
             generateStatementSequence()
 
+            currentSymbolTable = currentSymbolTable.parentScope
             ir.emit(endIfLabel)
 
         } else {
