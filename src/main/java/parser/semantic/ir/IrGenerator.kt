@@ -24,7 +24,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
     private var letCount = 1
 
-    public fun run()  {
+    fun run()  {
         while(letCount > 0) {
             takeSemanticAction()
         }
@@ -54,6 +54,9 @@ class IrGenerator(private val parseStream: ParseStream) {
                 currentSymbolTable = currentSymbolTable.parentScope
             }
             letCount -= 1
+        } else if (rule == MAIN_RULE) {
+            val mainSymbol = currentSymbolTable.newLabel("main")
+            ir.emit(mainSymbol)
         }
     }
 
@@ -233,8 +236,11 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     fun generateStatementSequence() {
-        var statementParseRule = parseStream.nextRule()
+        var statementParseRule: Rule
+
         do {
+            statementParseRule = parseStream.nextRule()
+
             if (statementParseRule == ID_STATMENT_START_RULE) {
                 generateStatementStartingWithId()
 
@@ -256,8 +262,6 @@ class IrGenerator(private val parseStream: ParseStream) {
             } else if (statementParseRule == LET_STATEMENT_RULE) {
                 generateLetStatement()
             }
-
-            statementParseRule = parseStream.nextRule()
         } while (statementParseRule == STAT_SEQUENCE_TAIL_RULE)
     }
 
@@ -397,7 +401,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         val idStatementRule = parseStream.nextRule()
         if (idStatementRule == Rule.ARRAY_INDEX_RULE) {
             generateArrayStatement()
-        } else {
+        } else if (idStatementRule == VARIABLE_VALUE_RULE) {
 
             val baseSymbol = lookupNextId()
             val functionCallOrAssignment = parseStream.nextRule()
@@ -411,6 +415,8 @@ class IrGenerator(private val parseStream: ParseStream) {
             } else {
                 throw RuntimeException("expected rule to parse function or assignment statement, but found $functionCallOrAssignment")
             }
+        } else {
+            throw RuntimeException("expected either lvalue or array statement")
         }
     }
 
@@ -447,12 +453,12 @@ class IrGenerator(private val parseStream: ParseStream) {
     fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
         val argumentsList: MutableList<Symbol> = mutableListOf()
 
-        if (parseStream.nextRule() == PAREN_TERM_RULE) {
+        if (parseStream.nextRule() == EXPRESSION_LIST_RULE) {
             do {
                 val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
                 argumentsList.add(expressionGenerator.generateReducedExpression())
 
-            } while (parseStream.nextRule() == EXPRESSION_LIST_RULE)
+            } while (parseStream.nextRule() == EXPRESSION_LIST_TAIL_RULE)
         }
 
         checkArgumentCompatibility(argumentsList, paramTypes)
@@ -464,12 +470,12 @@ class IrGenerator(private val parseStream: ParseStream) {
         val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
 
         if (argumentsList.size != paramTypes.size) {
-            throw SemanticException("expected params $paramTypes, found $argumentTypes")
+            throw SemanticException("expected params ${Arrays.toString(paramTypes)}, found $argumentTypes")
         }
 
         paramTypes.forEachIndexed { i, paramType ->
             if (paramType != argumentTypes[i]) {
-                throw SemanticException("expected params $paramTypes, found $argumentTypes")
+                throw SemanticException("expected params ${Arrays.toString(paramTypes)}, found $argumentTypes")
             }
         }
     }
@@ -507,6 +513,8 @@ class IrGenerator(private val parseStream: ParseStream) {
         } else if (literalToken.grammarSymbol == TokenType.FLOATLIT && literalToken.text != null) {
             symbol.putAttribute(Attribute.TYPE, FloatExpressionType())
             symbol.putAttribute(Attribute.LITERAL_VALUE, literalToken.text.toFloat())
+        } else {
+            throw RuntimeException("const can be only int or float type")
         }
 
         symbol.putAttribute(Attribute.IS_LITERAL, true)

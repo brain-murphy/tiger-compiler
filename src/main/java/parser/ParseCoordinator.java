@@ -1,6 +1,7 @@
 package parser;
 
 import parser.semantic.ParseStream;
+import parser.semantic.SemanticException;
 import parser.semantic.ir.IrGenerator;
 import parser.syntactic.Parser;
 import scanner.DirectScanner;
@@ -27,8 +28,13 @@ public class ParseCoordinator {
 
         parser.parse();
 
-        irGenerator.run();
+        try {
+            irGenerator.run();
+            System.out.println(irGenerator.getIR());
 
-        System.out.println(irGenerator.getIR());
+        } catch (SemanticException exc) {
+            System.out.println(exc.getMessage());
+            exc.printStackTrace();
+        }
     }
 }

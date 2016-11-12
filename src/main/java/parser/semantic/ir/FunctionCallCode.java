@@ -28,7 +28,7 @@ public class FunctionCallCode implements IrCode {
         if (op == IrOperation.CALLR) {
             stringBuilder
                     .append(", ")
-                    .append(r1);
+                    .append(r1.getName());
         }
 
         stringBuilder

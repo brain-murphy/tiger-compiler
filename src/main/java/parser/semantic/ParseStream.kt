@@ -48,6 +48,7 @@ class ParseStream {
     fun nextParsableToken(): ParsableToken {
         try {
             val returnedToken = filteredTokens.removeAt(0)
+            println(returnedToken)
             return returnedToken
         } catch (e: InterruptedException) {
             throw RuntimeException(e)
@@ -58,6 +59,7 @@ class ParseStream {
     fun nextRule(): Rule {
         try {
             val returnedRule = filteredRules.removeAt(0)
+            println(returnedRule)
             return returnedRule
         } catch (e: InterruptedException) {
             throw RuntimeException(e)

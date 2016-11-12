@@ -1,9 +1,11 @@
 /* type of function and variable do not match, wrong */
 let
         var a : int;
+        var b : int;
         function myPrint ( n : int) : int begin
                 printi(n);
+                return 1;
         end;
 in
-        a := myPrint(a);
+        a := myPrint(b);
 end

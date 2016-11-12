@@ -11,7 +11,7 @@ import java.util.Stack;
 
 public class Parser {
 
-    private boolean debug = true;
+    private boolean debug = false;
     private boolean errorCorrection = true;
 
     private boolean didThrowError = false;
@@ -47,10 +47,12 @@ public class Parser {
         {
             if(symbolStack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
             {
-                System.out.println("End of parse.");
+                if (debug) {
+                    System.out.println("End of parse.");
 
-                if (!didThrowError) {
-                    System.out.println("successful parse");
+                    if (!didThrowError) {
+                        System.out.println("successful parse");
+                    }
                 }
 
                 break;

@@ -7,9 +7,10 @@ import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
 import parser.syntactic.NonTerminal
 import parser.syntactic.Rule
-import parser.syntactic.Rule.EXPRESSION_LIST_RULE
+import parser.syntactic.Rule.EXPRESSION_LIST_TAIL_RULE
 import parser.syntactic.Rule.PAREN_TERM_RULE
 import scanner.TokenType
+import java.util.*
 
 class ExpressionGenerator(private val symbolTable: SymbolTable,
                           private val parseStream: ParseStream,
@@ -139,7 +140,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
                 val expressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
                 argumentsList.add(expressionGenerator.generateReducedExpression())
 
-            } while (parseStream.nextRule() == EXPRESSION_LIST_RULE)
+            } while (parseStream.nextRule() == EXPRESSION_LIST_TAIL_RULE)
         }
 
         checkArgumentCompatibility(argumentsList, paramTypes)
@@ -151,12 +152,12 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
 
         if (argumentsList.size != paramTypes.size) {
-            throw SemanticException("expected params $paramTypes, found $argumentTypes")
+            throw SemanticException("expected params ${Arrays.toString(paramTypes)}, found $argumentTypes")
         }
 
         paramTypes.forEachIndexed { i, paramType ->
             if (paramType != argumentTypes[i]) {
-                throw SemanticException("expected params $paramTypes, found $argumentTypes")
+                throw SemanticException("expected params ${Arrays.toString(paramTypes)}, found $argumentTypes")
             }
         }
     }
