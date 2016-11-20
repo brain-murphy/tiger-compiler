@@ -7,8 +7,7 @@ import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
 import parser.syntactic.NonTerminal
 import parser.syntactic.Rule
-import parser.syntactic.Rule.EXPRESSION_LIST_TAIL_RULE
-import parser.syntactic.Rule.PAREN_TERM_RULE
+import parser.syntactic.Rule.*
 import scanner.TokenType
 import java.util.*
 
@@ -28,16 +27,28 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     }
 
     private fun parseFirstTerm(): Symbol {
-        if (parseStream.nextRule() == Rule.EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
+        val expressionStartRule = parseStream.nextRule()
+
+        if (expressionStartRule == Rule.EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
             return expressionParsing(null)
 
-        } else {
-            if (parseStream.nextRule() == Rule.FUNCTION_INVOCATION_RULE) {
+
+        } else if (expressionStartRule == Rule.EXPRESSION_OR_FUNCTION_START_RULE) {
+            val invocationOrIdRule = parseStream.nextRule()
+
+            if (invocationOrIdRule == Rule.FUNCTION_INVOCATION_RULE) {
                 return generateFunctionInvocation()
 
-            } else {
+            } else if (invocationOrIdRule == Rule.LVALUE_EXPRESSION_START_RULE) {
                 return generateLValue()
+
+            } else {
+                throw RuntimeException("expected rule to parse Id as expression start. Found: $invocationOrIdRule")
             }
+
+
+        } else {
+            throw RuntimeException("expected rule to start expression. Found: $expressionStartRule")
         }
     }
 
@@ -103,9 +114,10 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         } else if (operationRule == Rule.EXPR_END_RULE) {
             expressionEndsToParse -= 1
             return lastValue!!
-        }
 
-        throw RuntimeException("could not match rule found while parsing expression")
+        } else {
+            throw RuntimeException("could not match rule found while parsing expression")
+        }
     }
 
 
@@ -117,14 +129,12 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         if (functionNameToken.grammarSymbol == TokenType.ID && functionNameToken.text != null) {
             val functionSymbol = symbolTable.lookup(functionNameToken.text) as Symbol
 
-            val functionSymbolType = functionSymbol.getAttribute(Attribute.TYPE)
-            if (functionSymbolType !is FunctionExpressionType) {
-                throw SemanticException("${functionSymbol.name} is not a function")
-            }
+            val functionSymbolType = checkSymbolIsFunction(functionSymbol)
 
             val arguments = generateArguments(functionSymbolType.params)
 
             irOutput.emit(FunctionCallCode(result, IrOperation.CALLR, functionSymbol, *arguments))
+
         } else {
             throw RuntimeException("Expected token to be function name")
         }
@@ -132,15 +142,27 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         return result
     }
 
+    private fun checkSymbolIsFunction(functionSymbol: Symbol): FunctionExpressionType {
+        val functionSymbolType = functionSymbol.getAttribute(Attribute.TYPE)
+        if (functionSymbolType !is FunctionExpressionType) {
+            throw SemanticException("${functionSymbol.name} is not a function")
+        }
+
+        return functionSymbolType
+    }
+
     private fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
-        val argumentsList: MutableList<Symbol> = mutableListOf()
+        val argumentsList: List<Symbol>
 
-        if (parseStream.nextRule() == PAREN_TERM_RULE) {
-            do {
-                val expressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
-                argumentsList.add(expressionGenerator.generateReducedExpression())
+        val hasExpressionListRule = parseStream.nextRule()
+        if (hasExpressionListRule == EXPRESSION_LIST_RULE) {
+            argumentsList = makeExpressionList()
 
-            } while (parseStream.nextRule() == EXPRESSION_LIST_TAIL_RULE)
+        } else if (hasExpressionListRule == NO_EXPRESSION_LIST_RULE) {
+            argumentsList = listOf()
+
+        } else {
+            throw RuntimeException("expected rule to denote whether the function has an expression list. Found: $hasExpressionListRule")
         }
 
         checkArgumentCompatibility(argumentsList, paramTypes)
@@ -148,7 +170,29 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         return argumentsList.toTypedArray()
     }
 
-    private fun checkArgumentCompatibility(argumentsList: MutableList<Symbol>, paramTypes: Array<ExpressionType>) {
+    private fun makeExpressionList(): List<Symbol> {
+        val argumentsList: MutableList<Symbol> = mutableListOf()
+
+        var isExpressionEndedRule: Rule
+        do {
+            val expressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
+            argumentsList.add(expressionGenerator.generateReducedExpression())
+
+            isExpressionEndedRule = parseStream.nextRule()
+        } while (isExpressionEndedRule == EXPRESSION_LIST_TAIL_RULE)
+
+        assertExpressionEnded(isExpressionEndedRule)
+
+        return argumentsList
+    }
+
+    private fun assertExpressionEnded(isExpressionEndedRule: Rule) {
+        if (isExpressionEndedRule != EXPRESSION_LIST_END_RULE) {
+            throw RuntimeException("expected rule to denote end of expression list. Found: $isExpressionEndedRule")
+        }
+    }
+
+    private fun checkArgumentCompatibility(argumentsList: List<Symbol>, paramTypes: Array<ExpressionType>) {
         val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
 
         if (argumentsList.size != paramTypes.size) {
@@ -192,6 +236,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
 
         } else if (literalToken.grammarSymbol == TokenType.FLOATLIT && literalToken.text != null) {
             const = makeFloatWithValue(literalToken.text.toFloat())
+
         } else {
             throw RuntimeException("expected constant (int or float) token")
         }
@@ -206,8 +251,10 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         val nextRule = parseStream.nextRule()
         if (nextRule == Rule.ARRAY_INDEX_RULE) {
             return generateArrayAccess(symbol)
+
         } else if (nextRule == Rule.VARIABLE_VALUE_RULE) {
             return symbol
+
         } else {
             throw RuntimeException("expected an lvalue rule but found: $nextRule")
         }
@@ -333,13 +380,12 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     }
 
     private fun lookupSymbol(parsableToken: ParseStream.ParsableToken): Symbol {
-
         if (parsableToken.grammarSymbol == TokenType.ID && parsableToken.text != null) {
             return symbolTable.lookup(parsableToken.text) as Symbol
+
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }
-
     }
 }
 

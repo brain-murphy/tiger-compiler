@@ -155,7 +155,6 @@ public class Rule {
     public static final Rule FUNCTION_STATEMENT_START_RULE = getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI);
     public static final Rule ASSIGNMENT_STATEMENT_RULE = getRuleForExpansion(STAT_ID, ASSIGN, STAT_TAIL, SEMI);
 
-    public static final Rule EXPRESSION_INVOCATION_RULE = getRuleForExpansion(STAT_ID, LPAREN, EXPR_LIST, RPAREN, SEMI);
     public static final Rule EXPRESSION_NOT_STARTING_WITH_ID_RULE = getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID);
     public static final Rule EXPRESSION_OR_FUNCTION_START_RULE = getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL);
     public static final Rule FUNCTION_INVOCATION_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN, EXPR_TAIL);
@@ -232,7 +231,6 @@ public class Rule {
                 FUNCTION_STATEMENT_START_RULE,
                 ASSIGNMENT_STATEMENT_RULE,
 
-                EXPRESSION_INVOCATION_RULE,
                 EXPRESSION_NOT_STARTING_WITH_ID_RULE,
                 EXPRESSION_OR_FUNCTION_START_RULE,
                 FUNCTION_INVOCATION_RULE,

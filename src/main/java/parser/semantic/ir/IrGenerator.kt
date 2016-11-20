@@ -143,19 +143,41 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    private fun hasOptionalInit() = parseStream.nextRule() == OPTIONAL_INIT_RULE
+    private fun hasOptionalInit(): Boolean {
+        val optionalInitRule = parseStream.nextRule()
+        if (optionalInitRule == OPTIONAL_INIT_RULE) {
+            return true
+
+        } else if (optionalInitRule == NO_OPTIONAL_INIT_RULE) {
+            return false
+
+        } else {
+            throw RuntimeException("expected either optional init or no optional init rule. Found: $optionalInitRule")
+        }
+    }
 
     fun calculateVarList(): List<Symbol> {
         val varList: MutableList<Symbol> = mutableListOf()
+
+        var nextVarListRule: Rule
 
         do {
             val idToken = parseStream.nextParsableToken()
             if (idToken.grammarSymbol == ID && idToken.text != null) {
                 varList.add(Symbol(idToken.text))
             }
-        } while (parseStream.nextRule() == VAR_LIST_TAIL_RULE)
+            nextVarListRule = parseStream.nextRule()
+        } while (nextVarListRule == VAR_LIST_TAIL_RULE)
+
+        assertVarListEnd(nextVarListRule)
 
         return varList
+    }
+
+    private fun assertVarListEnd(nextVarListRule: Rule) {
+        if (nextVarListRule != VAR_LIST_END_RULE) {
+            throw RuntimeException("expected rule for end of var list")
+        }
     }
 
     fun generateOptionalInit(symbolToAssign: Symbol, valueAssigned: Symbol) {
@@ -209,11 +231,15 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         val returnType: ExpressionType
 
-        if (parseStream.nextRule() == RETURN_TYPE_RULE) {
+        val returnRule = parseStream.nextRule()
+        if (returnRule == RETURN_TYPE_RULE) {
             returnType = calculateType(parseStream.nextRule())
 
-        } else {
+        } else if (returnRule == NO_RETURN_TYPE_RULE) {
             returnType = VoidExpressionType()
+
+        } else {
+            throw RuntimeException("expected a rule declaring the return type, or no return type. Found: $returnRule")
         }
 
         functionSymbol.putAttribute(Attribute.TYPE, FunctionExpressionType(params.values.toTypedArray(), returnType))
@@ -221,18 +247,53 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     fun calculateParamTypes(): Map<String, ExpressionType> {
-        val params: MutableMap<String, ExpressionType> = mutableMapOf()
-        if (parseStream.nextRule() == PARAM_LIST_RULE) {
-            do {
-                val paramName = parseStream.nextParsableToken().text
-                val paramType = calculateType(parseStream.nextRule())
+        val params: Map<String, ExpressionType>
 
-                params.put(paramName!!, paramType)
+        val paramRule = parseStream.nextRule()
+        if (paramRule == PARAM_LIST_RULE) {
+            params = makeParameters()
 
-            } while (parseStream.nextRule() == PARAM_LIST_TAIL_RULE)
+        } else if (paramRule == NO_PARAM_LIST_RULE) {
+            params = HashMap()
+
+        } else {
+            throw RuntimeException("expected rule denoting parameters or no parameters. Found: $paramRule")
         }
 
         return params
+    }
+
+    private fun makeParameters(): Map<String, ExpressionType> {
+        val params: MutableMap<String, ExpressionType> = mutableMapOf()
+
+        var paramListTailRule: Rule
+        do {
+            val paramNameToken = parseStream.nextParsableToken()
+            assertTokenIsId(paramNameToken)
+
+            val paramName = parseStream.nextParsableToken().text
+            val paramType = calculateType(parseStream.nextRule())
+
+            params.put(paramName!!, paramType)
+
+            paramListTailRule = parseStream.nextRule()
+        } while (paramListTailRule == PARAM_LIST_TAIL_RULE)
+
+        assertParamListEnd(paramListTailRule)
+
+        return params
+    }
+
+    private fun assertTokenIsId(paramNameToken: ParseStream.ParsableToken) {
+        if (paramNameToken.grammarSymbol != ID || paramNameToken.text == null) {
+            throw RuntimeException("expected id token for parameter name. Found: $paramNameToken")
+        }
+    }
+
+    private fun assertParamListEnd(paramListTailRule: Rule) {
+        if (paramListTailRule != PARAM_LIST_END_RULE) {
+            throw RuntimeException("expected rule for end of param list. Found $paramListTailRule")
+        }
     }
 
     fun generateStatementSequence() {
@@ -263,6 +324,14 @@ class IrGenerator(private val parseStream: ParseStream) {
                 generateLetStatement()
             }
         } while (statementParseRule == STAT_SEQUENCE_TAIL_RULE)
+
+        assertEndOfStatementSequence(statementParseRule)
+    }
+
+    private fun assertEndOfStatementSequence(statementParseRule: Rule) {
+        if (statementParseRule != STAT_SEQUENCE_END_RULE) {
+            throw RuntimeException("expected rule for end of statement sequence. Found: $statementParseRule")
+        }
     }
 
     private fun generateLetStatement() {
@@ -385,7 +454,8 @@ class IrGenerator(private val parseStream: ParseStream) {
             generateIfWithoutElse();
 
         } else if (ifTailRule == ELSE_RULE) {
-            generateIfAndElse();
+            generateIfAndElse()
+
         } else {
             throw RuntimeException("expected either 'else' clause, or and endif.")
         }
@@ -449,8 +519,8 @@ class IrGenerator(private val parseStream: ParseStream) {
         val idStatementRule = parseStream.nextRule()
         if (idStatementRule == Rule.ARRAY_INDEX_RULE) {
             generateArrayStatement()
-        } else if (idStatementRule == VARIABLE_VALUE_RULE) {
 
+        } else if (idStatementRule == VARIABLE_VALUE_RULE) {
             val baseSymbol = lookupNextId()
             val functionCallOrAssignment = parseStream.nextRule()
 
@@ -477,15 +547,19 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         val arrayIndex = generateArrayIndex()
 
-        if (parseStream.nextRule() == Rule.FUNCTION_INVOCATION_RULE) {
-            //TODO calling functions from an array access array[i]();
+        val arrayInvocationOrAssignRule = parseStream.nextRule()
+        if (arrayInvocationOrAssignRule == Rule.FUNCTION_STATEMENT_START_RULE) {
+            //TODO calling functions from an array access: array[i]();
 
-        } else {
+        } else if (arrayInvocationOrAssignRule == Rule.ASSIGNMENT_STATEMENT_RULE) {
             val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
 
             val rightSideResult = expressionGenerator.generateAssignmentExpression()
 
             ir.emit(ThreeAddressCode(arraySymbol, IrOperation.ARRAY_STORE, arrayIndex, rightSideResult))
+
+        } else {
+            throw RuntimeException("expected rule to either invoke a function stored in the array or assign the array index. Found: $arrayInvocationOrAssignRule")
         }
     }
 
@@ -499,14 +573,18 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
-        val argumentsList: MutableList<Symbol> = mutableListOf()
+        val argumentsList: List<Symbol>
 
-        if (parseStream.nextRule() == EXPRESSION_LIST_RULE) {
-            do {
-                val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-                argumentsList.add(expressionGenerator.generateReducedExpression())
+        val hasExpressionListRule = parseStream.nextRule()
 
-            } while (parseStream.nextRule() == EXPRESSION_LIST_TAIL_RULE)
+        if (hasExpressionListRule == EXPRESSION_LIST_RULE) {
+            argumentsList = makeArgumentsList()
+
+        } else if (hasExpressionListRule == NO_EXPRESSION_LIST_RULE) {
+            argumentsList = listOf()
+
+        } else {
+            throw RuntimeException("expected rule for expression list or no expression list. Found: $hasExpressionListRule")
         }
 
         checkArgumentCompatibility(argumentsList, paramTypes)
@@ -514,7 +592,29 @@ class IrGenerator(private val parseStream: ParseStream) {
         return argumentsList.toTypedArray()
     }
 
-    private fun checkArgumentCompatibility(argumentsList: MutableList<Symbol>, paramTypes: Array<ExpressionType>) {
+    private fun makeArgumentsList(): List<Symbol> {
+        val argumentsList: MutableList<Symbol> = mutableListOf()
+
+        var expressionListRule: Rule
+        do {
+            val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
+            argumentsList.add(expressionGenerator.generateReducedExpression())
+
+            expressionListRule = parseStream.nextRule()
+        } while (expressionListRule == EXPRESSION_LIST_TAIL_RULE)
+
+        assertExpressionListEnd(expressionListRule)
+
+        return argumentsList
+    }
+
+    private fun assertExpressionListEnd(expressionListRule: Rule) {
+        if (expressionListRule != EXPRESSION_LIST_END_RULE) {
+            throw RuntimeException("expected end of expression list. Found $expressionListRule")
+        }
+    }
+
+    private fun checkArgumentCompatibility(argumentsList: List<Symbol>, paramTypes: Array<ExpressionType>) {
         val argumentTypes = argumentsList.map { it.getAttribute(Attribute.TYPE) }
 
         if (argumentsList.size != paramTypes.size) {
@@ -561,6 +661,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         } else if (literalToken.grammarSymbol == TokenType.FLOATLIT && literalToken.text != null) {
             symbol.putAttribute(Attribute.TYPE, FloatExpressionType())
             symbol.putAttribute(Attribute.LITERAL_VALUE, literalToken.text.toFloat())
+
         } else {
             throw RuntimeException("const can be only int or float type")
         }
@@ -575,6 +676,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         if (parsableToken.grammarSymbol == ID && parsableToken.text != null) {
             return currentSymbolTable.lookup(parsableToken.text) as Symbol
+
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }
@@ -585,6 +687,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         if (parsableToken.grammarSymbol == ID && parsableToken.text != null) {
             return Symbol(parsableToken.text)
+
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }
