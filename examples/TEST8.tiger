@@ -1,4 +1,4 @@
-/* type of function and variable do not match, wrong */
+
 let
         var a : int;
         var b : int;

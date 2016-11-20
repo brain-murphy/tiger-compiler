@@ -286,8 +286,10 @@ class IrGenerator(private val parseStream: ParseStream) {
     private fun checkReturnType(expressionReturned: Symbol) {
         val functionType = functionParseStack.peek().getAttribute(Attribute.TYPE) as FunctionExpressionType
         if (functionType.returnType != expressionReturned.getAttribute(Attribute.TYPE)) {
+
             if (functionType.returnType is VoidExpressionType) {
                 throw SemanticException("void functions cannot have return statements")
+
             } else {
                 throw SemanticException("expression returned needs to be type ${functionType.returnType}")
             }
@@ -301,7 +303,8 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         val zeroSymbol = makeIntWithValue(0)
 
-        ir.emit(ThreeAddressCode(loopEndStack.pop(), IrOperation.BREQ, zeroSymbol, zeroSymbol))
+        val loopEndLabel = loopEndStack.pop()
+        ir.emit(ThreeAddressCode(loopEndLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol))
     }
 
     private fun generateForStatement() {
@@ -377,24 +380,69 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     private fun generateIfStatement() {
+        val ifTailRule = parseStream.nextRule()
+        if (ifTailRule == NO_ELSE_RULE) {
+            generateIfWithoutElse();
+
+        } else if (ifTailRule == ELSE_RULE) {
+            generateIfAndElse();
+        } else {
+            throw RuntimeException("expected either 'else' clause, or and endif.")
+        }
+    }
+
+    private fun generateIfAndElse() {
+        val conditionalExpression = generateIfCondititionalExpression()
+
+        val startElseLabel = currentSymbolTable.newLabel()
+        val endElseLabel = currentSymbolTable.newLabel()
+
+        val zeroSymbol = makeIntWithValue(0)
+        val branchToElseCode = ThreeAddressCode(startElseLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression)
+        ir.emit(branchToElseCode)
+
+        currentSymbolTable = currentSymbolTable.createChildScope(endElseLabel)
+        generateStatementSequence()
+        currentSymbolTable = currentSymbolTable.parentScope
+
+        val skipElseCode = ThreeAddressCode(endElseLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol)
+        ir.emit(skipElseCode)
+
+
+        ir.emit(startElseLabel)
+
+        currentSymbolTable = currentSymbolTable.createChildScope(startElseLabel)
+        generateStatementSequence()
+        currentSymbolTable = currentSymbolTable.parentScope
+
+        ir.emit(endElseLabel)
+    }
+
+    private fun generateIfWithoutElse() {
+        val conditionalExpression = generateIfCondititionalExpression()
+
+        val endIfLabel = currentSymbolTable.newLabel()
+
+        val zeroSymbol = makeIntWithValue(0)
+
+        ir.emit(ThreeAddressCode(endIfLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression))
+
+        currentSymbolTable = currentSymbolTable.createChildScope(endIfLabel)
+        generateStatementSequence()
+        currentSymbolTable = currentSymbolTable.parentScope
+
+        ir.emit(endIfLabel)
+    }
+
+    private fun generateIfCondititionalExpression(): Symbol {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
         val conditionalExpression = expressionGenerator.generateReducedExpression()
 
-        if (isIntegerExpressionType(conditionalExpression)) {
-            val zeroSymbol = makeIntWithValue(0)
-            val endIfLabel = currentSymbolTable.newLabel()
-            currentSymbolTable = currentSymbolTable.createChildScope(endIfLabel)
-
-            ir.emit(ThreeAddressCode(endIfLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression))
-
-            generateStatementSequence()
-
-            currentSymbolTable = currentSymbolTable.parentScope
-            ir.emit(endIfLabel)
-
-        } else {
+        if (!isIntegerExpressionType(conditionalExpression)) {
             throw SemanticException("conditional expression must have integer type")
         }
+
+        return conditionalExpression
     }
 
     fun generateStatementStartingWithId() {

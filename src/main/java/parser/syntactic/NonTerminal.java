@@ -47,6 +47,8 @@ public enum NonTerminal implements GrammarSymbol {
     LET_END,
     MAIN,
 
+    IF_STATEMENT_TAIL,
+
     EXPR_NOT_STARTING_WITH_ID,
     EXPR_OR_FUNC_TAIL,
     NOT_ID_EXPR_START,

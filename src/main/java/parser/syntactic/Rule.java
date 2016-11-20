@@ -45,10 +45,13 @@ public class Rule {
                     new Rule(RET_TYPE, NULL),
                     new Rule(RET_TYPE, COLON, NonTerminal.TYPE),
                     new Rule(PARAM, ID, COLON, NonTerminal.TYPE),
+
                     new Rule(STAT_SEQ, STAT, STAT_SEQ_TAIL),
                     new Rule(STAT_SEQ_TAIL, NULL),
                     new Rule(STAT_SEQ_TAIL, STAT, STAT_SEQ_TAIL),
-                    new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI),
+                    new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, IF_STATEMENT_TAIL),
+                    new Rule(IF_STATEMENT_TAIL, ELSE, STAT_SEQ, ENDIF, SEMI),
+                    new Rule(IF_STATEMENT_TAIL, ENDIF),
                     new Rule(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, BREAK, SEMI),
@@ -181,7 +184,9 @@ public class Rule {
     public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
     public static final Rule VARIABLE_VALUE_RULE = getRuleForExpansion(LVALUE_TAIL, NULL);
 
-    public static final Rule IF_STATMENT_RULE = getRuleForExpansion(STAT, IF, EXPR, THEN, STAT_SEQ, ELSE, STAT_SEQ, ENDIF, SEMI);
+    public static final Rule IF_STATMENT_RULE = getRuleForExpansion(STAT, IF, EXPR, THEN, STAT_SEQ, IF_STATEMENT_TAIL);
+    public static final Rule ELSE_RULE = getRuleForExpansion(IF_STATEMENT_TAIL, ELSE, STAT_SEQ, ENDIF, SEMI);
+    public static final Rule NO_ELSE_RULE = getRuleForExpansion(IF_STATEMENT_TAIL, ENDIF);
     public static final Rule WHILE_STATEMENT_RULE = getRuleForExpansion(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule FOR_STATEMENT_RULE = getRuleForExpansion(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule BREAK_STATEMENT_RULE = getRuleForExpansion(STAT, BREAK, SEMI);
@@ -252,6 +257,8 @@ public class Rule {
                 VARIABLE_VALUE_RULE,
 
                 IF_STATMENT_RULE,
+                ELSE_RULE,
+                NO_ELSE_RULE,
                 WHILE_STATEMENT_RULE,
                 FOR_STATEMENT_RULE,
                 BREAK_STATEMENT_RULE,
