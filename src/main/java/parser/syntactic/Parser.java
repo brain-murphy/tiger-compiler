@@ -19,7 +19,6 @@ public class Parser {
     ParsingTable parsingTable;
     private Token currentToken;
     private Stack<GrammarSymbol> symbolStack;
-
     private Scanner scanner;
 
     private ParseStream parseStream;
@@ -38,59 +37,40 @@ public class Parser {
 
     public void parse() {
         symbolStack = new Stack<>();
-        // Conversion between TokenType and String?
-        currentToken = getNextToken();
+
         // Push the start symbol to the stack
         symbolStack.push(NonTerminal.TIGER_PROGRAM);
+
         GrammarSymbol focus = symbolStack.peek();
-        while( true )
-        {
-            if(symbolStack.empty() && !scanner.hasNextToken() ) // No more input, parsing finish successfully
-            {
-                if (debug) {
-                    System.out.println("End of parse.");
+        currentToken = getNextToken();
+
+        while (true) {
+
+            if (symbolStack.empty() && !scanner.hasNextToken()) { // no more input
+                System.out.println("End of parse.");
 
                     if (!didThrowError) {
                         System.out.println("successful parse");
                     }
-                }
 
                 break;
-            }
-            else if( focus instanceof TokenType)
-            {
+
+            } else if (focus instanceof TokenType) { // focus is terminal
                 TokenType terminal = (TokenType) focus;
 
                 if (terminal.equals(currentToken.getTokenType())) {
                     acceptToken();
 
                 } else {
-                    didThrowError = true;
-                    List<TokenType> expectedTokens = Collections.singletonList(terminal);
-
-                    if (errorCorrection) {
-                        correctError(expectedTokens);
-                    } else {
-                        throwError(scanner.getLexicalError(currentToken, expectedTokens));
-                    }
-
+                    correctTerminalErrorIfEnabled(terminal);
                 }
-            }
-            else // focus is NT
-            {
+            } else { // focus is NT
+
                 NonTerminal nonTerminal = (NonTerminal) focus;
                 Rule ruleToExpandNonTerminal = parsingTable.getParsingRule(nonTerminal, currentToken.getTokenType());
 
                 if (ruleToExpandNonTerminal == null) {
-                    didThrowError = true;
-                    List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(nonTerminal);
-
-                    if (errorCorrection) {
-                        NonTerminal newFocus = correctError(nonTerminal);
-                        ruleToExpandNonTerminal = parsingTable.getParsingRule(newFocus, currentToken.getTokenType());
-                    } else {
-                        throwError(scanner.getLexicalError(currentToken, expectedTokens));
-                    }
+                    ruleToExpandNonTerminal = correctNtErrorIfEnabled(nonTerminal);
                 }
 
                 symbolStack.pop();
@@ -99,13 +79,41 @@ public class Parser {
 
                 pushExpansionToSymbolStack(ruleToExpandNonTerminal);
 
-
             }
             if (!symbolStack.isEmpty()) {
                 focus = symbolStack.peek();
             }
         }
 
+    }
+
+    private void correctTerminalErrorIfEnabled(TokenType terminal) {
+        didThrowError = true;
+        List<TokenType> expectedTokens = Collections.singletonList(terminal);
+
+        if (errorCorrection) {
+            correctError(expectedTokens);
+        } else {
+            throwError(scanner.getLexicalError(currentToken, expectedTokens));
+        }
+    }
+
+    private Rule correctNtErrorIfEnabled(NonTerminal nonTerminal) {
+        didThrowError = true;
+
+        List<TokenType> expectedTokens = parsingTable.getAugmentedFirstSet(nonTerminal);
+
+        Rule ruleToExpandNonTerminal = null;
+
+        if (errorCorrection) {
+            NonTerminal newFocus = correctError(nonTerminal);
+            ruleToExpandNonTerminal = parsingTable.getParsingRule(newFocus, currentToken.getTokenType());
+
+        } else {
+            throwError(scanner.getLexicalError(currentToken, expectedTokens));
+        }
+
+        return ruleToExpandNonTerminal;
     }
 
     private void pushExpansionToSymbolStack(Rule ruleToExpandNonTerminal) {
