@@ -271,7 +271,7 @@ class IrGenerator(private val parseStream: ParseStream) {
             val paramNameToken = parseStream.nextParsableToken()
             assertTokenIsId(paramNameToken)
 
-            val paramName = parseStream.nextParsableToken().text
+            val paramName = paramNameToken.text
             val paramType = calculateType(parseStream.nextRule())
 
             params.put(paramName!!, paramType)
@@ -299,6 +299,7 @@ class IrGenerator(private val parseStream: ParseStream) {
     fun generateStatementSequence() {
         var statementParseRule: Rule
 
+        var statementListRule: Rule
         do {
             statementParseRule = parseStream.nextRule()
 
@@ -323,9 +324,11 @@ class IrGenerator(private val parseStream: ParseStream) {
             } else if (statementParseRule == LET_STATEMENT_RULE) {
                 generateLetStatement()
             }
-        } while (statementParseRule == STAT_SEQUENCE_TAIL_RULE)
 
-        assertEndOfStatementSequence(statementParseRule)
+            statementListRule = parseStream.nextRule()
+        } while (statementListRule == STAT_SEQUENCE_TAIL_RULE)
+
+        assertEndOfStatementSequence(statementListRule)
     }
 
     private fun assertEndOfStatementSequence(statementParseRule: Rule) {
