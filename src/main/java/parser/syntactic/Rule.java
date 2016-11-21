@@ -27,7 +27,7 @@ public class Rule {
                     new Rule(FUNCT_DECLARATION_LIST, FUNCT_DECLARATION, FUNCT_DECLARATION_LIST),
                     new Rule(TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI),
                     new Rule(NonTerminal.TYPE, TYPE_ID),
-                    new Rule(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID),
+                    new Rule(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, NonTerminal.TYPE),
                     new Rule(NonTerminal.TYPE, ID),
                     new Rule(TYPE_ID, INTTYPEID),
                     new Rule(TYPE_ID, FLOATTYPEID),
@@ -128,7 +128,7 @@ public class Rule {
 
     public static final Rule TYPE_DECLARATION_RULE = getRuleForExpansion(TYPE_DECLARATION, TokenType.TYPE, ID, EQ, NonTerminal.TYPE, SEMI);
     public static final Rule BASE_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, TYPE_ID);
-    public static final Rule ARRAY_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, TYPE_ID);
+    public static final Rule ARRAY_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, ARRAY, LBRACK, INTLIT, RBRACK, OF, NonTerminal.TYPE);
     public static final Rule USER_DEFINED_TYPE_RULE = getRuleForExpansion(NonTerminal.TYPE, ID);
 
     public static final Rule VAR_DECLARATION_RULE = getRuleForExpansion(NonTerminal.VAR_DECLARATION, VAR, NonTerminal.ID_LIST, COLON, NonTerminal.TYPE, NonTerminal.OPTIONAL_INIT, SEMI);

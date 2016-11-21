@@ -55,10 +55,21 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
     /**
      * parses expressions where it is not necessary to account for it starting with a function invocation
      */
-    fun generateReducedExpression(): Symbol {
+    fun generateStandaloneExpression(): Symbol {
         var lastResult: Symbol? = null
 
         while (expressionEndsToParse > 0) {
+            lastResult = expressionParsing(lastResult)
+        }
+
+        return lastResult!!
+    }
+
+    private fun parseSubExpression(lastValue: Symbol?): Symbol {
+        val expressionEndsToParseWhenSubExpressionStarted = expressionEndsToParse
+        var lastResult: Symbol? = lastValue
+
+        while (expressionEndsToParse > expressionEndsToParseWhenSubExpressionStarted) {
             lastResult = expressionParsing(lastResult)
         }
 
@@ -69,37 +80,37 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         val operationRule = parseStream.nextRule()
 
         if (operationRule == Rule.AND_TERM_RULE) {
-            return generateANDOperation(lastValue?:expressionParsing(null), expressionParsing(null))
+            return generateANDOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
 
         } else if (operationRule == Rule.OR_TERM_RULE) {
-            return generateOROperation(lastValue?:expressionParsing(null), expressionParsing(null))
+            return generateOROperation(lastValue?:expressionParsing(null), parseSubExpression(null))
 
         } else if (operationRule == Rule.EQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BREQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BREQ, rightOperand = parseSubExpression(null))
 
         } else if (operationRule == Rule.NEQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRNEQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRNEQ, rightOperand = parseSubExpression(null))
 
         } else if (operationRule == Rule.LESSER_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLT, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLT, rightOperand = parseSubExpression(null))
 
         } else if (operationRule == Rule.GREATER_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGT, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGT, rightOperand = parseSubExpression(null))
 
         } else if (operationRule == Rule.LESSEREQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLEQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLEQ, rightOperand = parseSubExpression(null))
 
         } else if (operationRule == Rule.GREATEREQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGEQ, rightOperand = expressionParsing(null))
+            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGEQ, rightOperand = parseSubExpression(null))
 
         } else if (operationRule == Rule.PLUS_TERM_RULE) {
-            return generateADDOperation(lastValue?:expressionParsing(null), expressionParsing(null))
+            return generateADDOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
 
         } else if (operationRule == Rule.MINUS_TERM_RULE) {
-            return generateSUBTRACTOperation(lastValue?:expressionParsing(null), expressionParsing(null))
+            return generateSUBTRACTOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
 
         } else if (operationRule == Rule.MULT_TERM_RULE) {
-            return generateMULTOperation(lastValue?:expressionParsing(null), expressionParsing(null))
+            return generateMULTOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
 
         } else if (operationRule == Rule.CONST_TERM_RULE) {
             return generateConst()
@@ -109,7 +120,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
 
         } else if (operationRule == Rule.PAREN_TERM_RULE) {
             expressionEndsToParse += 1
-            return expressionParsing(null)
+            return parseSubExpression(null)
 
         } else if (operationRule == Rule.EXPR_END_RULE) {
             expressionEndsToParse -= 1
@@ -176,7 +187,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         var isExpressionEndedRule: Rule
         do {
             val expressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
-            argumentsList.add(expressionGenerator.generateReducedExpression())
+            argumentsList.add(expressionGenerator.generateStandaloneExpression())
 
             isExpressionEndedRule = parseStream.nextRule()
         } while (isExpressionEndedRule == EXPRESSION_LIST_TAIL_RULE)
@@ -265,7 +276,8 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
             throw SemanticException("${nameSymbol.name} is not an array")
         }
 
-        val index = generateAssignmentExpression()
+        val indexExpressionGenerator = ExpressionGenerator(symbolTable, parseStream, irOutput)
+        val index = indexExpressionGenerator.generateStandaloneExpression()
 
         if (!isIntegerExpressionType(index)) {
             throw SemanticException("array index must be an integer type")
@@ -323,7 +335,7 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
             resultType = IntegerExpressionType()
 
         } else {
-            throw SemanticException("arguments not compatible $leftOperand $rightOperand")
+            throw SemanticException("arguments not compatible $leftOperandType $rightOperandType")
         }
 
         return resultType

@@ -97,11 +97,13 @@ public class HashSymbolTable implements SymbolTable {
     public SymbolTableEntry lookup(String name) {
         HashSymbolTable currentTable = this;
 
-        do {
+        while(currentTable != null) {
             if (currentTable.symbols.containsKey(name)) {
                 return currentTable.symbols.get(name);
             }
-        } while (currentTable.getParentScope() != null);
+
+            currentTable = (HashSymbolTable) currentTable.getParentScope();
+        }
 
         throw new SemanticException("did not recognize symbol with name " + name);
     }

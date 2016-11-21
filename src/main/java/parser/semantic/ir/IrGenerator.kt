@@ -80,7 +80,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         } else if (parseRuleUsed == USER_DEFINED_TYPE_RULE) {
             return calculateUserDefinedType()
         } else {
-            throw RuntimeException("could not recognize rule for parsing type")
+            throw RuntimeException("could not recognize rule for parsing type. Found: $parseRuleUsed")
         }
     }
 
@@ -202,8 +202,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         addArgumentSymbols(functionSymbol)
 
-        // Deliberately skip STAT_SEQUENCE_START_RULE
-        parseStream.nextRule()
+        assertStatementSequenceStart()
 
         generateStatementSequence()
 
@@ -211,6 +210,13 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         functionParseStack.pop()
         currentSymbolTable = currentSymbolTable.parentScope
+    }
+
+    private fun assertStatementSequenceStart() {
+        val statementSequenceRule = parseStream.nextRule()
+        if (statementSequenceRule != STAT_SEQUENCE_RULE) {
+            throw RuntimeException("expected start of statement sequence. Found: $statementSequenceRule")
+        }
     }
 
     private fun addArgumentSymbols(functionSymbol: Symbol) {
@@ -348,7 +354,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
     private fun generateReturnStatement() {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-        val expressionReturned = expressionGenerator.generateReducedExpression()
+        val expressionReturned = expressionGenerator.generateStandaloneExpression()
 
         checkReturnType(expressionReturned)
 
@@ -394,6 +400,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         ir.emit(ThreeAddressCode(endOfLoopLabel, IrOperation.BRGT, indexVariable, endExpression))
 
+        assertStatementSequenceStart()
         generateStatementSequence()
 
         ir.emit(ThreeAddressCode(indexVariable, IrOperation.ADD, indexVariable, makeIntWithValue(1)))
@@ -407,7 +414,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
     private fun generateEndIndex(): Symbol {
         val endExpressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-        val endExpression = endExpressionGenerator.generateReducedExpression()
+        val endExpression = endExpressionGenerator.generateStandaloneExpression()
 
         if (!isIntegerExpressionType(endExpression)) {
             throw SemanticException("end condition of for loop must have integer expression type")
@@ -418,7 +425,7 @@ class IrGenerator(private val parseStream: ParseStream) {
     private fun generateIndexInitialization(): Symbol {
         val conditionalVariable = nextIdAsSymbol()
         val initializationExpressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-        val initializationExpression = initializationExpressionGenerator.generateReducedExpression()
+        val initializationExpression = initializationExpressionGenerator.generateStandaloneExpression()
 
         if (!isIntegerExpressionType(initializationExpression)) {
             throw SemanticException("initialization of for loop must have integer expression type")
@@ -436,13 +443,14 @@ class IrGenerator(private val parseStream: ParseStream) {
         ir.emit(startOfLoopLabel)
 
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-        val conditionalExpression = expressionGenerator.generateReducedExpression()
+        val conditionalExpression = expressionGenerator.generateStandaloneExpression()
 
         val endOfLoopLabel = currentSymbolTable.newLabel()
         loopEndStack.push(endOfLoopLabel)
 
         ir.emit(ThreeAddressCode(endOfLoopLabel, IrOperation.BREQ, conditionalExpression, zeroSymbol))
 
+        assertStatementSequenceStart()
         generateStatementSequence()
 
         ir.emit(ThreeAddressCode(startOfLoopLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol))
@@ -454,7 +462,7 @@ class IrGenerator(private val parseStream: ParseStream) {
     private fun generateIfStatement() {
         val ifTailRule = parseStream.nextRule()
         if (ifTailRule == NO_ELSE_RULE) {
-            generateIfWithoutElse();
+            generateIfWithoutElse()
 
         } else if (ifTailRule == ELSE_RULE) {
             generateIfAndElse()
@@ -475,6 +483,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         ir.emit(branchToElseCode)
 
         currentSymbolTable = currentSymbolTable.createChildScope(endElseLabel)
+        assertStatementSequenceStart()
         generateStatementSequence()
         currentSymbolTable = currentSymbolTable.parentScope
 
@@ -485,6 +494,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         ir.emit(startElseLabel)
 
         currentSymbolTable = currentSymbolTable.createChildScope(startElseLabel)
+        assertStatementSequenceStart()
         generateStatementSequence()
         currentSymbolTable = currentSymbolTable.parentScope
 
@@ -501,6 +511,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         ir.emit(ThreeAddressCode(endIfLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression))
 
         currentSymbolTable = currentSymbolTable.createChildScope(endIfLabel)
+        assertStatementSequenceStart()
         generateStatementSequence()
         currentSymbolTable = currentSymbolTable.parentScope
 
@@ -509,7 +520,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
     private fun generateIfCondititionalExpression(): Symbol {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-        val conditionalExpression = expressionGenerator.generateReducedExpression()
+        val conditionalExpression = expressionGenerator.generateStandaloneExpression()
 
         if (!isIntegerExpressionType(conditionalExpression)) {
             throw SemanticException("conditional expression must have integer type")
@@ -601,7 +612,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         var expressionListRule: Rule
         do {
             val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
-            argumentsList.add(expressionGenerator.generateReducedExpression())
+            argumentsList.add(expressionGenerator.generateStandaloneExpression())
 
             expressionListRule = parseStream.nextRule()
         } while (expressionListRule == EXPRESSION_LIST_TAIL_RULE)
@@ -642,7 +653,7 @@ class IrGenerator(private val parseStream: ParseStream) {
     private fun generateArrayIndex(): Symbol {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
 
-        val expressionValue = expressionGenerator.generateReducedExpression()
+        val expressionValue = expressionGenerator.generateStandaloneExpression()
         if (!isIntegerExpressionType(expressionValue)) {
             throw SemanticException("array index must be integer expression")
         }
