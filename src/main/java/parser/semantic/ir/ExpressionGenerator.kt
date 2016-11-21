@@ -1,5 +1,6 @@
 package parser.semantic.ir
 
+import com.sun.deploy.security.ValidationState
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
 import parser.semantic.symboltable.Attribute
@@ -14,124 +15,229 @@ import java.util.*
 class ExpressionGenerator(private val symbolTable: SymbolTable,
                           private val parseStream: ParseStream,
                           private val irOutput: LinearIr) {
-    private var expressionEndsToParse = 1
 
     fun generateAssignmentExpression(): Symbol {
-        var lastResult = parseFirstTerm()
+        val result: Symbol
 
-        while (expressionEndsToParse > 0) {
-            lastResult = expressionParsing(lastResult)
-        }
+        val firstTermParsingRule = parseStream.nextRule()
 
-        return lastResult
-    }
+        if (firstTermParsingRule == EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
+            result = generateExpressionNotStartingWithId()
 
-    private fun parseFirstTerm(): Symbol {
-        val expressionStartRule = parseStream.nextRule()
-
-        if (expressionStartRule == Rule.EXPRESSION_NOT_STARTING_WITH_ID_RULE) {
-            return expressionParsing(null)
-
-
-        } else if (expressionStartRule == Rule.EXPRESSION_OR_FUNCTION_START_RULE) {
-            val invocationOrIdRule = parseStream.nextRule()
-
-            if (invocationOrIdRule == Rule.FUNCTION_INVOCATION_RULE) {
-                return generateFunctionInvocation()
-
-            } else if (invocationOrIdRule == Rule.LVALUE_EXPRESSION_START_RULE) {
-                return generateLValue()
-
-            } else {
-                throw RuntimeException("expected rule to parse Id as expression start. Found: $invocationOrIdRule")
-            }
-
+        } else if (firstTermParsingRule == EXPRESSION_OR_FUNCTION_START_RULE) {
+            result = generateExpressionStartingWithId()
 
         } else {
-            throw RuntimeException("expected rule to start expression. Found: $expressionStartRule")
+            throw RuntimeException("expected rule to parse right hand side of an assignment statement. Found: $firstTermParsingRule")
         }
+
+        return result
+    }
+
+    private fun generateExpressionStartingWithId(): Symbol {
+        val result: Symbol
+
+        val expressionOrFunctionTailRule = parseStream.nextRule()
+
+        if (expressionOrFunctionTailRule == FUNCTION_INVOCATION_RULE) {
+            result = generateExprTail(generateFunctionInvocation())
+
+        } else if (expressionOrFunctionTailRule == LVALUE_EXPRESSION_START_RULE) {
+            result = completeRecursiveWalk(generateLValue())
+
+        } else {
+            throw RuntimeException("expected rule to parse expression starting with id. Found: $expressionOrFunctionTailRule")
+        }
+
+        return result
+    }
+
+    private fun generateExpressionNotStartingWithId(): Symbol {
+        val expressionStart = generateNonIdExpressionStart()
+
+        var operationResult = completeRecursiveWalk(expressionStart)
+
+        return operationResult
+    }
+
+    private fun completeRecursiveWalk(expressionStart: Symbol): Symbol {
+        var operationResult = expressionStart
+
+        operationResult = generateCTermTail(operationResult)
+        operationResult = generateBTermTail(operationResult)
+        operationResult = generateATermTail(operationResult)
+        operationResult = generateExprTail(operationResult)
+
+        return operationResult
+    }
+
+    private fun generateNonIdExpressionStart(): Symbol {
+        val result: Symbol
+
+        val expressionStartRule = parseStream.nextRule()
+        if (expressionStartRule == CONST_EXPRESSION_START_RULE) {
+            result = generateConst()
+
+        } else if (expressionStartRule == PAREN_EXPRESSION_START_RULE) {
+            result = generateStandaloneExpression()
+
+        } else {
+            throw RuntimeException("expected rule to parse non-id expression start. Found: $expressionStartRule")
+        }
+
+        return result
     }
 
     /**
      * parses expressions where it is not necessary to account for it starting with a function invocation
      */
     fun generateStandaloneExpression(): Symbol {
-        var lastResult: Symbol? = null
+        assertNextRule(EXPR_START_RULE, "expected rule to start standalone expression")
 
-        while (expressionEndsToParse > 0) {
-            lastResult = expressionParsing(lastResult)
-        }
+        val aTerm = generateATerm()
 
-        return lastResult!!
+        return generateExprTail(aTerm)
     }
 
-    private fun parseSubExpression(lastValue: Symbol?): Symbol {
-        val expressionEndsToParseWhenSubExpressionStarted = expressionEndsToParse
-        var lastResult: Symbol? = lastValue
+    private fun generateExprTail(aTerm: Symbol): Symbol {
+        val result: Symbol
 
-        while (expressionEndsToParse > expressionEndsToParseWhenSubExpressionStarted) {
-            lastResult = expressionParsing(lastResult)
-        }
+        val exprTailOperationRule = parseStream.nextRule()
 
-        return lastResult!!
-    }
+        if (exprTailOperationRule == AND_TERM_RULE) {
+            result = generateANDOperation(aTerm, generateATerm())
 
-    private fun expressionParsing(lastValue: Symbol?): Symbol {
-        val operationRule = parseStream.nextRule()
+        } else if (exprTailOperationRule == OR_TERM_RULE) {
+            result = generateOROperation(aTerm, generateATerm())
 
-        if (operationRule == Rule.AND_TERM_RULE) {
-            return generateANDOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
-
-        } else if (operationRule == Rule.OR_TERM_RULE) {
-            return generateOROperation(lastValue?:expressionParsing(null), parseSubExpression(null))
-
-        } else if (operationRule == Rule.EQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BREQ, rightOperand = parseSubExpression(null))
-
-        } else if (operationRule == Rule.NEQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRNEQ, rightOperand = parseSubExpression(null))
-
-        } else if (operationRule == Rule.LESSER_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLT, rightOperand = parseSubExpression(null))
-
-        } else if (operationRule == Rule.GREATER_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGT, rightOperand = parseSubExpression(null))
-
-        } else if (operationRule == Rule.LESSEREQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRLEQ, rightOperand = parseSubExpression(null))
-
-        } else if (operationRule == Rule.GREATEREQ_TERM_RULE) {
-            return generateBooleanOperation(lastValue?:expressionParsing(null), IrOperation.BRGEQ, rightOperand = parseSubExpression(null))
-
-        } else if (operationRule == Rule.PLUS_TERM_RULE) {
-            return generateADDOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
-
-        } else if (operationRule == Rule.MINUS_TERM_RULE) {
-            return generateSUBTRACTOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
-
-        } else if (operationRule == Rule.MULT_TERM_RULE) {
-            return generateMULTOperation(lastValue?:expressionParsing(null), parseSubExpression(null))
-
-        } else if (operationRule == Rule.CONST_TERM_RULE) {
-            return generateConst()
-
-        } else if (operationRule == Rule.LVALUE_TERM_RULE) {
-            return generateLValue()
-
-        } else if (operationRule == Rule.PAREN_TERM_RULE) {
-            expressionEndsToParse += 1
-            return parseSubExpression(null)
-
-        } else if (operationRule == Rule.EXPR_END_RULE) {
-            expressionEndsToParse -= 1
-            return lastValue!!
+        } else if (exprTailOperationRule == EXPR_END_RULE) {
+            result = aTerm
 
         } else {
-            throw RuntimeException("could not match rule found while parsing expression")
+            throw RuntimeException("expected rule to parse expr tail. Found: $exprTailOperationRule")
+        }
+
+        return result
+    }
+
+    private fun generateATerm(): Symbol {
+        assertNextRule(ATERM_START_RULE, "expected rule to start ATerm")
+
+        val bTerm = generateBTerm()
+
+        return generateATermTail(bTerm)
+    }
+
+    private fun generateATermTail(bTerm: Symbol): Symbol {
+        val result: Symbol
+
+        val aTermOperationRule = parseStream.nextRule()
+
+        if (aTermOperationRule == EQ_TERM_RULE) {
+            result = generateBooleanOperation(leftOperand = bTerm, op = IrOperation.BREQ, rightOperand = generateBTerm())
+
+        } else if (aTermOperationRule == NEQ_TERM_RULE) {
+            result = generateBooleanOperation(bTerm, IrOperation.BRNEQ, generateBTerm())
+
+        } else if (aTermOperationRule == LESSER_TERM_RULE) {
+            result = generateBooleanOperation(bTerm, IrOperation.BRLT, generateBTerm())
+
+        } else if (aTermOperationRule == GREATER_TERM_RULE) {
+            result = generateBooleanOperation(bTerm, IrOperation.BRGT, generateBTerm())
+
+        } else if (aTermOperationRule == LESSEREQ_TERM_RULE) {
+            result = generateBooleanOperation(bTerm, IrOperation.BRLEQ, generateBTerm())
+
+        } else if (aTermOperationRule == GREATEREQ_TERM_RULE) {
+            result = generateBooleanOperation(bTerm, IrOperation.BRGEQ, generateBTerm())
+
+        } else if (aTermOperationRule == ATERM_TAIL_NULL_RULE) {
+            result = bTerm
+
+        } else {
+            throw RuntimeException("expected rule to parse ATerm tail. Found: $aTermOperationRule")
+        }
+
+        return result
+    }
+
+    private fun generateBTerm(): Symbol {
+        assertNextRule(BTERM_START_RULE, "expected rule to start BTerm")
+
+        val cTerm = generateCTerm()
+
+        return generateBTermTail(cTerm)
+    }
+
+    private fun generateBTermTail(cTerm: Symbol): Symbol {
+        val bTermOperationRule = parseStream.nextRule()
+
+        if (bTermOperationRule == PLUS_TERM_RULE) {
+            return generateADDOperation(cTerm, generateCTerm())
+
+        } else if (bTermOperationRule == MINUS_TERM_RULE) {
+            return generateSUBTRACTOperation(cTerm, generateCTerm())
+
+        } else if (bTermOperationRule == BTERM_TAIL_NULL_RULE) {
+            return cTerm
+
+        } else {
+            throw RuntimeException("expected rule to parse bTerm tail. Found: $bTermOperationRule")
         }
     }
 
+    private fun generateCTerm(): Symbol {
+        assertNextRule(CTERM_START_RULE, "expected rule to start CTerm")
 
+        val factor = generateFactor()
+
+        return generateCTermTail(factor);
+    }
+
+    private fun generateCTermTail(factor: Symbol): Symbol {
+        val cTermOperationRule = parseStream.nextRule()
+
+        if (cTermOperationRule == MULT_TERM_RULE) {
+            return generateMULTOperation(factor, generateFactor())
+
+        } else if (cTermOperationRule == DIV_TERM_RULE) {
+            return generateDIVOperation(factor, generateFactor())
+
+        } else if (cTermOperationRule == CTERM_TAIL_NULL_RULE) {
+            return factor
+
+        } else {
+            throw RuntimeException("expected rule to parse cTerm tail. Found: $cTermOperationRule")
+        }
+    }
+
+    private fun generateFactor(): Symbol {
+        val result: Symbol
+        val factorRule = parseStream.nextRule()
+
+        if (factorRule == CONST_TERM_RULE) {
+            result = generateConst()
+
+        } else if (factorRule == LVALUE_TERM_RULE) {
+            result = generateLValue()
+
+        } else if (factorRule == PAREN_TERM_RULE) {
+            result = generateStandaloneExpression()
+
+        } else {
+            throw RuntimeException("expected rule to expand factor. Found: $factorRule")
+        }
+
+        return result
+    }
+
+    fun assertNextRule(expected: Rule, message: String) {
+        val nextRule = parseStream.nextRule()
+
+        if (nextRule != expected) {
+            throw RuntimeException("$message. Found: $nextRule")
+        }
+    }
 
     private fun generateFunctionInvocation(): Symbol {
         val functionNameToken = parseStream.nextParsableToken()
@@ -285,6 +391,9 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
 
         val result = symbolTable.newTemporary()
 
+        val arrayElementType = nameSymbol.getAttribute(Attribute.TYPE) as ArrayExpressionType
+        result.putAttribute(Attribute.TYPE, arrayElementType.baseType)
+
         irOutput.emit(ThreeAddressCode(result, IrOperation.ARRAY_LOAD, nameSymbol, index))
 
         return result
@@ -297,6 +406,17 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         result.putAttribute(Attribute.TYPE, resultType)
 
         irOutput.emit(ThreeAddressCode(result, IrOperation.MULT, leftOperand, rightOperand))
+
+        return result
+    }
+
+    private fun generateDIVOperation(leftOperand: Symbol, rightOperand: Symbol): Symbol {
+        val resultType = getMixedOperandResultType(leftOperand, rightOperand)
+
+        val result = symbolTable.newTemporary()
+        result.putAttribute(Attribute.TYPE, resultType)
+
+        irOutput.emit(ThreeAddressCode(result, IrOperation.DIV, leftOperand, rightOperand))
 
         return result
     }

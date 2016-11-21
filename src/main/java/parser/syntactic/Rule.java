@@ -156,6 +156,8 @@ public class Rule {
     public static final Rule ASSIGNMENT_STATEMENT_RULE = getRuleForExpansion(STAT_ID, ASSIGN, STAT_TAIL, SEMI);
 
     public static final Rule EXPRESSION_NOT_STARTING_WITH_ID_RULE = getRuleForExpansion(STAT_TAIL, EXPR_NOT_STARTING_WITH_ID);
+    public static final Rule CONST_EXPRESSION_START_RULE = getRuleForExpansion(NOT_ID_EXPR_START, CONST);
+    public static final Rule PAREN_EXPRESSION_START_RULE = getRuleForExpansion(NOT_ID_EXPR_START, LPAREN, EXPR, RPAREN);
     public static final Rule EXPRESSION_OR_FUNCTION_START_RULE = getRuleForExpansion(STAT_TAIL, ID, EXPR_OR_FUNC_TAIL);
     public static final Rule FUNCTION_INVOCATION_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LPAREN, EXPR_LIST, RPAREN, EXPR_TAIL);
     public static final Rule LVALUE_EXPRESSION_START_RULE = getRuleForExpansion(EXPR_OR_FUNC_TAIL, LVALUE_TAIL, C_TERM_TAIL, B_TERM_TAIL, A_TERM_TAIL, EXPR_TAIL);
@@ -164,6 +166,16 @@ public class Rule {
     public static final Rule EXPRESSION_LIST_RULE = getRuleForExpansion(EXPR_LIST, EXPR, EXPR_LIST_TAIL);
     public static final Rule EXPRESSION_LIST_TAIL_RULE = getRuleForExpansion(EXPR_LIST_TAIL, COMMA, EXPR, EXPR_LIST_TAIL);
     public static final Rule EXPRESSION_LIST_END_RULE = getRuleForExpansion(EXPR_LIST_TAIL, NULL);
+
+    public static final Rule EXPR_START_RULE = getRuleForExpansion(EXPR, A_TERM, EXPR_TAIL);
+    public static final Rule ATERM_START_RULE = getRuleForExpansion(A_TERM, B_TERM, A_TERM_TAIL);
+    public static final Rule BTERM_START_RULE = getRuleForExpansion(B_TERM, C_TERM, B_TERM_TAIL);
+    public static final Rule CTERM_START_RULE = getRuleForExpansion(C_TERM, FACTOR, C_TERM_TAIL);
+
+    public static final Rule CTERM_TAIL_NULL_RULE = getRuleForExpansion(C_TERM_TAIL, NULL);
+    public static final Rule BTERM_TAIL_NULL_RULE = getRuleForExpansion(B_TERM_TAIL, NULL);
+    public static final Rule ATERM_TAIL_NULL_RULE = getRuleForExpansion(A_TERM_TAIL, NULL);
+    public static final Rule EXPR_END_RULE = getRuleForExpansion(EXPR_TAIL, NULL);
 
     public static final Rule AND_TERM_RULE = getRuleForExpansion(EXPR_TAIL, AND, A_TERM);
     public static final Rule OR_TERM_RULE = getRuleForExpansion(EXPR_TAIL, OR, A_TERM);
@@ -176,10 +188,10 @@ public class Rule {
     public static final Rule PLUS_TERM_RULE = getRuleForExpansion(B_TERM_TAIL, PLUS, C_TERM);
     public static final Rule MINUS_TERM_RULE = getRuleForExpansion(B_TERM_TAIL, MINUS, C_TERM);
     public static final Rule MULT_TERM_RULE = getRuleForExpansion(C_TERM_TAIL, MULT, FACTOR);
+    public static final Rule DIV_TERM_RULE = getRuleForExpansion(C_TERM_TAIL, DIV, FACTOR);
     public static final Rule CONST_TERM_RULE = getRuleForExpansion(FACTOR, CONST);
     public static final Rule LVALUE_TERM_RULE = getRuleForExpansion(FACTOR, LVALUE);
     public static final Rule PAREN_TERM_RULE = getRuleForExpansion(FACTOR, LPAREN, EXPR, RPAREN);
-    public static final Rule EXPR_END_RULE = getRuleForExpansion(EXPR_TAIL, NULL);
     public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
     public static final Rule VARIABLE_VALUE_RULE = getRuleForExpansion(LVALUE_TAIL, NULL);
 
@@ -233,8 +245,19 @@ public class Rule {
 
                 EXPRESSION_NOT_STARTING_WITH_ID_RULE,
                 EXPRESSION_OR_FUNCTION_START_RULE,
+                CONST_EXPRESSION_START_RULE,
+                PAREN_EXPRESSION_START_RULE,
                 FUNCTION_INVOCATION_RULE,
                 LVALUE_EXPRESSION_START_RULE,
+
+                EXPR_START_RULE,
+                ATERM_START_RULE,
+                BTERM_START_RULE,
+                CTERM_START_RULE,
+
+                CTERM_TAIL_NULL_RULE,
+                BTERM_TAIL_NULL_RULE,
+                ATERM_TAIL_NULL_RULE,
 
                 AND_TERM_RULE,
                 OR_TERM_RULE,
@@ -247,6 +270,7 @@ public class Rule {
                 PLUS_TERM_RULE,
                 MINUS_TERM_RULE,
                 MULT_TERM_RULE,
+                DIV_TERM_RULE,
                 CONST_TERM_RULE,
                 PAREN_TERM_RULE,
                 LVALUE_TERM_RULE,
