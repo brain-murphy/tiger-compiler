@@ -43,20 +43,28 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         if (rule == TYPE_DECLARATION_RULE) {
             generateTypeDeclaration()
+
         } else if (rule == VAR_DECLARATION_RULE) {
             generateVarDeclaration()
+
         } else if (rule == FUNCTION_DECLARATION_RULE) {
             generateFunctionDeclaration()
+
         } else if (rule == STAT_SEQUENCE_RULE) {
             generateStatementSequence()
+
         } else if (rule == LET_END_RULE) {
             if (letCount > 1) {
                 currentSymbolTable = currentSymbolTable.parentScope
             }
             letCount -= 1
+
         } else if (rule == MAIN_RULE) {
             val mainSymbol = currentSymbolTable.newLabel("main")
             ir.emit(mainSymbol)
+
+        } else {
+            throw RuntimeException("couldn't find rule to take semantic action on. Found: $rule")
         }
     }
 
@@ -79,6 +87,7 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         } else if (parseRuleUsed == USER_DEFINED_TYPE_RULE) {
             return calculateUserDefinedType()
+
         } else {
             throw RuntimeException("could not recognize rule for parsing type. Found: $parseRuleUsed")
         }
@@ -90,8 +99,10 @@ class IrGenerator(private val parseStream: ParseStream) {
 
         if (basicType == TokenType.INTTYPEID) {
             return IntegerExpressionType()
+
         } else if (basicType == TokenType.FLOATTYPEID) {
             return FloatExpressionType()
+
         } else {
             throw RuntimeException("could not recognize basic type")
         }
@@ -103,6 +114,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         val arrayLength: Int
         if (lengthToken.grammarSymbol == TokenType.INTLIT && lengthToken.text != null) {
             arrayLength = lengthToken.text.toInt()
+
         } else {
             throw RuntimeException("array length token should be int literal but could not be parsed")
         }
@@ -119,6 +131,7 @@ class IrGenerator(private val parseStream: ParseStream) {
             val typeSymbol = currentSymbolTable.lookup(typeToken.text) as Symbol
 
             return typeSymbol.getAttribute(Attribute.TYPE) as ExpressionType
+
         } else {
             throw RuntimeException("token should have TokenType ID to be parsed as symbol")
         }
