@@ -367,7 +367,10 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
 
         val nextRule = parseStream.nextRule()
         if (nextRule == Rule.ARRAY_INDEX_RULE) {
-            return generateArrayAccess(symbol)
+
+            var lastArraySymbol = generateMultiDimensionalArrayAccess(symbol)
+
+            return lastArraySymbol
 
         } else if (nextRule == Rule.VARIABLE_VALUE_RULE) {
             return symbol
@@ -375,6 +378,20 @@ class ExpressionGenerator(private val symbolTable: SymbolTable,
         } else {
             throw RuntimeException("expected an lvalue rule but found: $nextRule")
         }
+    }
+
+    private fun generateMultiDimensionalArrayAccess(symbol: Symbol): Symbol {
+        var lastArraySymbol = symbol
+        var nextArrayEndRule: Rule
+        do {
+            lastArraySymbol = generateArrayAccess(lastArraySymbol)
+            nextArrayEndRule = parseStream.nextRule()
+        } while (nextArrayEndRule == ARRAY_INDEX_RULE)
+
+        if (nextArrayEndRule != VARIABLE_VALUE_RULE) {
+            throw RuntimeException("expected end of array accesses. Found: $nextArrayEndRule")
+        }
+        return lastArraySymbol
     }
 
     private fun generateArrayAccess(nameSymbol: Symbol): Symbol {
