@@ -51,7 +51,7 @@ public class Rule {
                     new Rule(STAT_SEQ_TAIL, STAT, STAT_SEQ_TAIL),
                     new Rule(STAT, IF, EXPR, THEN, STAT_SEQ, IF_STATEMENT_TAIL),
                     new Rule(IF_STATEMENT_TAIL, ELSE, STAT_SEQ, ENDIF, SEMI),
-                    new Rule(IF_STATEMENT_TAIL, ENDIF),
+                    new Rule(IF_STATEMENT_TAIL, ENDIF, SEMI),
                     new Rule(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI),
                     new Rule(STAT, BREAK, SEMI),
@@ -197,7 +197,7 @@ public class Rule {
 
     public static final Rule IF_STATMENT_RULE = getRuleForExpansion(STAT, IF, EXPR, THEN, STAT_SEQ, IF_STATEMENT_TAIL);
     public static final Rule ELSE_RULE = getRuleForExpansion(IF_STATEMENT_TAIL, ELSE, STAT_SEQ, ENDIF, SEMI);
-    public static final Rule NO_ELSE_RULE = getRuleForExpansion(IF_STATEMENT_TAIL, ENDIF);
+    public static final Rule NO_ELSE_RULE = getRuleForExpansion(IF_STATEMENT_TAIL, ENDIF, SEMI);
     public static final Rule WHILE_STATEMENT_RULE = getRuleForExpansion(STAT, WHILE, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule FOR_STATEMENT_RULE = getRuleForExpansion(STAT, FOR, ID, ASSIGN, EXPR, TO, EXPR, DO, STAT_SEQ, ENDDO, SEMI);
     public static final Rule BREAK_STATEMENT_RULE = getRuleForExpansion(STAT, BREAK, SEMI);

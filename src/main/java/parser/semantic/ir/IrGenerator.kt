@@ -473,48 +473,6 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     private fun generateIfStatement() {
-        val ifTailRule = parseStream.nextRule()
-        if (ifTailRule == NO_ELSE_RULE) {
-            generateIfWithoutElse()
-
-        } else if (ifTailRule == ELSE_RULE) {
-            generateIfAndElse()
-
-        } else {
-            throw RuntimeException("expected either 'else' clause, or and endif.")
-        }
-    }
-
-    private fun generateIfAndElse() {
-        val conditionalExpression = generateIfCondititionalExpression()
-
-        val startElseLabel = currentSymbolTable.newLabel()
-        val endElseLabel = currentSymbolTable.newLabel()
-
-        val zeroSymbol = makeIntWithValue(0)
-        val branchToElseCode = ThreeAddressCode(startElseLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression)
-        ir.emit(branchToElseCode)
-
-        currentSymbolTable = currentSymbolTable.createChildScope(endElseLabel)
-        assertStatementSequenceStart()
-        generateStatementSequence()
-        currentSymbolTable = currentSymbolTable.parentScope
-
-        val skipElseCode = ThreeAddressCode(endElseLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol)
-        ir.emit(skipElseCode)
-
-
-        ir.emit(startElseLabel)
-
-        currentSymbolTable = currentSymbolTable.createChildScope(startElseLabel)
-        assertStatementSequenceStart()
-        generateStatementSequence()
-        currentSymbolTable = currentSymbolTable.parentScope
-
-        ir.emit(endElseLabel)
-    }
-
-    private fun generateIfWithoutElse() {
         val conditionalExpression = generateIfCondititionalExpression()
 
         val endIfLabel = currentSymbolTable.newLabel()
@@ -524,11 +482,50 @@ class IrGenerator(private val parseStream: ParseStream) {
         ir.emit(ThreeAddressCode(endIfLabel, IrOperation.BREQ, zeroSymbol, conditionalExpression))
 
         currentSymbolTable = currentSymbolTable.createChildScope(endIfLabel)
+
+        assertStatementSequenceStart()
+        generateStatementSequence()
+
+        currentSymbolTable = currentSymbolTable.parentScope
+
+
+        if(shouldGenerateElse()) {
+            generateElse(endIfLabel)
+
+        } else {
+            ir.emit(endIfLabel)
+        }
+
+    }
+
+    private fun generateElse(endIfLabel: Label) {
+        val zeroSymbol = makeIntWithValue(0)
+        val endElseLabel = currentSymbolTable.newLabel()
+        val skipElseCode = ThreeAddressCode(endElseLabel, IrOperation.BREQ, zeroSymbol, zeroSymbol)
+
+        ir.emit(skipElseCode)
+
+        ir.emit(endIfLabel)
+
+        currentSymbolTable = currentSymbolTable.createChildScope(endElseLabel)
         assertStatementSequenceStart()
         generateStatementSequence()
         currentSymbolTable = currentSymbolTable.parentScope
 
-        ir.emit(endIfLabel)
+        ir.emit(endElseLabel)
+    }
+
+    private fun shouldGenerateElse(): Boolean {
+        val ifTailRule = parseStream.nextRule()
+        if (ifTailRule == NO_ELSE_RULE) {
+            return false
+
+        } else if (ifTailRule == ELSE_RULE) {
+            return true
+
+        } else {
+            throw RuntimeException("expected either 'else' clause, or and endif.")
+        }
     }
 
     private fun generateIfCondititionalExpression(): Symbol {

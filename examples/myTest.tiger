@@ -1,0 +1,69 @@
+let
+    type MapEntry = array [2] of int;
+    type Map = array[100] of int;
+
+    var map: Map;
+
+    function insert(mapEntry: MapEntry)
+    begin
+
+        if (mapEntry[0] < 100)
+        then
+
+            map[mapEntry[0]] := mapEntry[1];
+        endif;
+    end;
+
+    function get(key: int): MapEntry
+    begin
+
+        if (key < 100)
+        then
+
+            let
+                var mapEntryResult: MapEntry;
+            in
+                mapEntryResult[0] := key;
+                mapEntryResult[1] := map[key];
+
+                return mapEntryResult;
+            end
+
+        endif;
+    end;
+
+    function makeMapEntry(key: int, value: int): MapEntry
+    begin
+        if (key < 100)
+        then
+
+            let
+                var newMapEntry: MapEntry;
+            in
+                newMapEntry[0] := key;
+                newMapEntry[1] := value;
+            end
+        endif;
+    end;
+
+in
+
+    let
+        var firstEntry, secondEntry, thirdEntry: MapEntry;
+
+        var mapEntryArray: array [3] of MapEntry;
+
+    in
+        firstEntry := makeMapEntry(0, 1);
+        secondEntry := makeMapEntry(1, 2);
+        thirdEntry := makeMapEntry(2, 3);
+
+        insert(firstEntry);
+        insert(secondEntry);
+        insert(thirdEntry);
+
+        mapEntryArray[0] := get(0);
+        mapEntryArray[1] := get(1);
+        mapEntryArray[2] := get(2);
+    end
+end
