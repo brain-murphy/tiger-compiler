@@ -65,5 +65,9 @@ in
         mapEntryArray[0] := get(0);
         mapEntryArray[1] := get(1);
         mapEntryArray[2] := get(2);
+
+        for i := 0 to 2 do
+            printi(mapEntryArray[i][1]);
+        enddo;
     end
 end

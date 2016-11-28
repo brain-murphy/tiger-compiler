@@ -357,12 +357,47 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
     private fun generateLetStatement() {
-        letCount += 1
         val newScopeLabel = currentSymbolTable.newLabel()
 
         ir.emit(newScopeLabel)
 
         currentSymbolTable = currentSymbolTable.createChildScope(newScopeLabel)
+
+        var nextRule = parseStream.nextRule()
+
+        while (nextRule == TYPE_DECLARATION_RULE) {
+            generateTypeDeclaration()
+
+            nextRule = parseStream.nextRule()
+        }
+
+        while (nextRule == VAR_DECLARATION_RULE) {
+            generateVarDeclaration()
+
+            nextRule = parseStream.nextRule()
+        }
+        while (nextRule == FUNCTION_DECLARATION_RULE) {
+            generateFunctionDeclaration()
+
+            nextRule = parseStream.nextRule()
+        }
+
+        if (nextRule != STAT_SEQUENCE_RULE) {
+            throw RuntimeException("expected start of statement sequence. Found: $nextRule")
+        }
+
+        generateStatementSequence()
+
+        currentSymbolTable = currentSymbolTable.parentScope
+
+        assertNextRuleEndsLet()
+    }
+
+    private fun assertNextRuleEndsLet() {
+        val nextRule = parseStream.nextRule()
+        if (nextRule != LET_END_RULE) {
+            throw RuntimeException("expected end of let. Found: $nextRule")
+        }
     }
 
     private fun generateReturnStatement() {
@@ -403,6 +438,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         currentSymbolTable = currentSymbolTable.createChildScope(startOfLoopLabel)
 
         val indexVariable = generateIndexInitialization()
+        currentSymbolTable.insert(indexVariable)
 
         val endExpression = generateEndIndex()
 
@@ -443,6 +479,8 @@ class IrGenerator(private val parseStream: ParseStream) {
         if (!isIntegerExpressionType(initializationExpression)) {
             throw SemanticException("initialization of for loop must have integer expression type")
         }
+
+        conditionalVariable.putAttribute(Attribute.TYPE, IntegerExpressionType())
 
         ir.emit(ThreeAddressCode(conditionalVariable, IrOperation.ASSIGN, initializationExpression, null))
         return conditionalVariable
@@ -570,6 +608,11 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
 
         val arrayIndex = generateArrayIndex()
+
+        val lValueEndRule = parseStream.nextRule()
+        if (lValueEndRule != VARIABLE_VALUE_RULE) {
+            throw RuntimeException("expected end of lvalue so array assign is one dimensional. Found: $lValueEndRule")
+        }
 
         val arrayInvocationOrAssignRule = parseStream.nextRule()
         if (arrayInvocationOrAssignRule == Rule.FUNCTION_STATEMENT_START_RULE) {

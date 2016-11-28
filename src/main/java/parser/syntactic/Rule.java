@@ -105,7 +105,7 @@ public class Rule {
                     new Rule(EXPR_LIST_TAIL, NULL),
                     new Rule(LVALUE, ID, LVALUE_TAIL),
                     new Rule(LVALUE_TAIL, NULL),
-                    new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK)
+                    new Rule(LVALUE_TAIL, LBRACK, EXPR, RBRACK, LVALUE_TAIL)
             };
 
     // Keep in hashSet for faster lookup
@@ -192,7 +192,7 @@ public class Rule {
     public static final Rule CONST_TERM_RULE = getRuleForExpansion(FACTOR, CONST);
     public static final Rule LVALUE_TERM_RULE = getRuleForExpansion(FACTOR, LVALUE);
     public static final Rule PAREN_TERM_RULE = getRuleForExpansion(FACTOR, LPAREN, EXPR, RPAREN);
-    public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK);
+    public static final Rule ARRAY_INDEX_RULE = getRuleForExpansion(LVALUE_TAIL, LBRACK, EXPR, RBRACK, LVALUE_TAIL);
     public static final Rule VARIABLE_VALUE_RULE = getRuleForExpansion(LVALUE_TAIL, NULL);
 
     public static final Rule IF_STATMENT_RULE = getRuleForExpansion(STAT, IF, EXPR, THEN, STAT_SEQ, IF_STATEMENT_TAIL);
