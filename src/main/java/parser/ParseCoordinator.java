@@ -3,8 +3,9 @@ package parser;
 import parser.semantic.ParseStream;
 import parser.semantic.SemanticException;
 import parser.semantic.ir.IrGenerator;
+import parser.semantic.ir.LinearIr;
+import parser.semantic.symboltable.SymbolTable;
 import parser.syntactic.Parser;
-import scanner.DirectScanner;
 import scanner.Scanner;
 
 /**
@@ -13,28 +14,37 @@ import scanner.Scanner;
 public class ParseCoordinator {
 
     private Scanner scanner;
+    private IrGenerator irGenerator;
 
     public ParseCoordinator(Scanner scanner) {
-
         this.scanner = scanner;
+        runParse();
     }
 
-    public void runParse() {
+    private void runParse() {
         ParseStream parseStream = new ParseStream();
 
         Parser parser = new Parser(scanner, parseStream);
 
-        IrGenerator irGenerator = new IrGenerator(parseStream);
+        irGenerator = new IrGenerator(parseStream);
 
         parser.parse();
 
         try {
             irGenerator.run();
-            System.out.println(irGenerator.getIR());
+            System.out.println(irGenerator.getIr());
 
         } catch (SemanticException exc) {
             System.out.println(exc.getMessage());
             exc.printStackTrace();
         }
+    }
+
+    public SymbolTable getSymbolTable() {
+        return irGenerator.getSymbolTable();
+    }
+
+    public LinearIr getIr() {
+        return irGenerator.getIr();
     }
 }

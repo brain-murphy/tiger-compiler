@@ -30,7 +30,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun getIR(): LinearIr {
+    fun getIr(): LinearIr {
         return ir
     }
 
@@ -68,7 +68,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun generateTypeDeclaration() {
+    private fun generateTypeDeclaration() {
         val newType = nextIdAsSymbol()
 
         val type = calculateType(parseStream.nextRule())
@@ -78,7 +78,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         currentSymbolTable.insert(newType)
     }
 
-    fun calculateType(parseRuleUsed: Rule): ExpressionType {
+    private fun calculateType(parseRuleUsed: Rule): ExpressionType {
         if (parseRuleUsed == BASE_TYPE_RULE) {
             return calculateBasicType()
 
@@ -94,7 +94,7 @@ class IrGenerator(private val parseStream: ParseStream) {
     }
 
 
-    fun calculateBasicType(): ExpressionType {
+    private fun calculateBasicType(): ExpressionType {
         val basicType = parseStream.nextParsableToken().grammarSymbol as TokenType
 
         if (basicType == TokenType.INTTYPEID) {
@@ -108,7 +108,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun calculateArrayType(): ExpressionType {
+    private fun calculateArrayType(): ExpressionType {
         val lengthToken = parseStream.nextParsableToken()
 
         val arrayLength: Int
@@ -124,7 +124,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         return ArrayExpressionType(baseType, arrayLength)
     }
 
-    fun calculateUserDefinedType(): ExpressionType {
+    private fun calculateUserDefinedType(): ExpressionType {
         val typeToken = parseStream.nextParsableToken()
 
         if (typeToken.grammarSymbol == ID && typeToken.text != null) {
@@ -137,7 +137,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun generateVarDeclaration() {
+    private fun generateVarDeclaration() {
         val newVars = calculateVarList()
 
         val type = calculateType(parseStream.nextRule())
@@ -169,7 +169,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun calculateVarList(): List<Symbol> {
+    private fun calculateVarList(): List<Symbol> {
         val varList: MutableList<Symbol> = mutableListOf()
 
         var nextVarListRule: Rule
@@ -193,14 +193,14 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun generateOptionalInit(symbolToAssign: Symbol, valueAssigned: Symbol) {
+    private fun generateOptionalInit(symbolToAssign: Symbol, valueAssigned: Symbol) {
         if (valueAssigned.getAttribute(Attribute.TYPE) == symbolToAssign.getAttribute(Attribute.TYPE)) {
 
             ir.emit(ThreeAddressCode(symbolToAssign, IrOperation.ASSIGN, valueAssigned, null))
         }
     }
 
-    fun generateFunctionDeclaration() {
+    private fun generateFunctionDeclaration() {
         val functionSymbol = nextIdAsSymbol()
         currentSymbolTable.insert(functionSymbol)
 
@@ -245,7 +245,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun calculateFunctionAttributes(functionSymbol: Symbol) {
+    private fun calculateFunctionAttributes(functionSymbol: Symbol) {
         val params = calculateParamTypes()
 
         val returnType: ExpressionType
@@ -265,7 +265,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         functionSymbol.putAttribute(Attribute.FUNCTION_PARAM_NAMES, params.keys.toTypedArray())
     }
 
-    fun calculateParamTypes(): Map<String, ExpressionType> {
+    private fun calculateParamTypes(): Map<String, ExpressionType> {
         val params: Map<String, ExpressionType>
 
         val paramRule = parseStream.nextRule()
@@ -315,7 +315,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun generateStatementSequence() {
+    private fun generateStatementSequence() {
         var statementParseRule: Rule
 
         var statementListRule: Rule
@@ -539,7 +539,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         return conditionalExpression
     }
 
-    fun generateStatementStartingWithId() {
+    private fun generateStatementStartingWithId() {
         val idStatementRule = parseStream.nextRule()
         if (idStatementRule == Rule.ARRAY_INDEX_RULE) {
             generateArrayStatement()
@@ -587,7 +587,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun generateFunctionCallAsStatement(function: Symbol) {
+    private fun generateFunctionCallAsStatement(function: Symbol) {
 
         val parameterTypes = (function.getAttribute(Attribute.TYPE) as FunctionExpressionType).params
 
@@ -596,7 +596,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         ir.emit(FunctionCallCode(IrOperation.CALL, function, *arguments))
     }
 
-    fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
+    private fun generateArguments(paramTypes: Array<ExpressionType>): Array<Symbol> {
         val argumentsList: List<Symbol>
 
         val hasExpressionListRule = parseStream.nextRule()
@@ -652,7 +652,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun generateAssignmentStatement(leftSideVariable: Symbol) {
+    private fun generateAssignmentStatement(leftSideVariable: Symbol) {
         val expressionGenerator = ExpressionGenerator(currentSymbolTable, parseStream, ir)
 
         val rightSideResult = expressionGenerator.generateAssignmentExpression()
@@ -695,7 +695,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         return symbol
     }
 
-    fun lookupNextId(): Symbol {
+    private fun lookupNextId(): Symbol {
         val parsableToken = parseStream.nextParsableToken()
 
         if (parsableToken.grammarSymbol == ID && parsableToken.text != null) {
@@ -706,7 +706,7 @@ class IrGenerator(private val parseStream: ParseStream) {
         }
     }
 
-    fun nextIdAsSymbol(): Symbol {
+    private fun nextIdAsSymbol(): Symbol {
         val parsableToken = parseStream.nextParsableToken()
 
         if (parsableToken.grammarSymbol == ID && parsableToken.text != null) {

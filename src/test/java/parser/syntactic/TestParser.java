@@ -31,7 +31,8 @@ public class TestParser {
 
         ParseCoordinator parseCoordinator = new ParseCoordinator(scanner);
 
-        parseCoordinator.runParse();
+        parseCoordinator.getIr();
+        parseCoordinator.getSymbolTable();
     }
 
 //    @Test
