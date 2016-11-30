@@ -1,0 +1,9 @@
+/* type of parameter in function does not match, wrong */
+let
+        var a : float;
+        function print ( n : int) begin
+                printi(n);
+        end;
+in
+        print(a);
+end

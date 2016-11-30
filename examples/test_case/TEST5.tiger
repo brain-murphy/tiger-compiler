@@ -1,0 +1,8 @@
+/* no declaration before using variable, wrong */
+let
+        function print ( n : int) begin
+                printi(n);
+        end;
+in
+        print(a);
+end

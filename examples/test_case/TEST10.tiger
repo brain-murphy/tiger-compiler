@@ -1,0 +1,15 @@
+/* print(b) is out of the scope of b, wrong */
+let
+        var a : float;
+        function print ( n : int) begin
+                printi(n);
+        end;
+in
+        let
+            var b : float;
+        in
+            b := 10;
+        end
+        print(b);
+        print(a);
+end

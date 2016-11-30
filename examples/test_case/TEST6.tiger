@@ -1,0 +1,9 @@
+/* function is not declared before being used, wrong */
+let
+
+        function returnIt(n:int) : int begin
+                return(n);
+        end;
+in
+        returnIIIIt(5);
+end
