@@ -1,4 +1,4 @@
-package parser.RegAlloc;
+package codeGeneration.RegAlloc;
 
 import java.util.ArrayList;
 import java.util.List;
