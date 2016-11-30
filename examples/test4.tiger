@@ -1,6 +1,11 @@
 let
-        var _a : int;
+	type FirstInt = int;
+	type SecondInt = FirstInt;
+	var X : FirstInt := 0;
+	var Y : SecondInt;
+	var A : int := 0;
+	var B : float := 0.1;
 in
-        a := 1;
-        printi(a);
+	Y := Y + X;
+	A := A + B;
 end

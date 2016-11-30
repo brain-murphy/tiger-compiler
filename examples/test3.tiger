@@ -1,8 +1,9 @@
 let
-
-        function return_it(n:int) : int begin
-                return(n);
-        end;
+	var X, Y : float := 0.0;
+	function myPrint (X : int) begin
+		printi(X);
+	end;
 in
-        return_it(5);
+	myPrint(5);
+	X := 1.0;
 end
