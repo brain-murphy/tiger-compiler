@@ -1,0 +1,9 @@
+/* function declaration have 2 parameter, only given 1, wrong */
+let
+
+        function print ( n : int, m : int ) begin
+                printi(n);
+        end;
+in
+        print(5);
+end

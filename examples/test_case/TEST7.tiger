@@ -1,0 +1,9 @@
+/* missing the return statement, wrong */
+let
+
+        function returnIt(n:int) : int begin
+                printi(n);
+        end;
+in
+        returnIIIIt(5);
+end

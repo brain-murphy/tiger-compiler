@@ -1,0 +1,9 @@
+/* type of return value does not match function return type, wrong */
+let
+
+        function returnIt(n:int) : float begin
+                return(n);
+        end;
+in
+        returnIt(5);
+end
