@@ -54,5 +54,22 @@ public class RegAlloc {
     }
     public void genRegAllocNaive(){
         // naive method for generating reg allocation code
+        int i = 0;
+        int j;
+        while(i < originalIR.size()){
+            // Count the total number of registers we need for this line
+            j = 1; // originalIR.get(0) is the operation string
+            while(j < originalIR.get(i).size()) {
+
+                j = j + 1;
+            }
+            // Add corresponding number of load IR to outputIRNaive
+            // Add the original line to outputIRNaive, remember to use the register name
+            // Add corresponding number of store IR to outputIRNaive
+            i = i + 1;
+        }
+    }
+    public void genRegAllocCFG(){
+
     }
 }
