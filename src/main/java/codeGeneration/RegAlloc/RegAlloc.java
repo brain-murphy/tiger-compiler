@@ -7,6 +7,7 @@ import scanner.Scanner;
 import util.Reader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -19,9 +20,10 @@ public class RegAlloc {
         public String op2 = "";
     }
 
-    private List<List<String>> orignalIR = new ArrayList<List<String>>();
+    private List<List<String>> originalIR = new ArrayList<List<String>>();
     private List<List<String>> outputIRNaive = new ArrayList<List<String>>();
 
+    @org.junit.Test
     public void inputIR() {
         // parse in the input IR and store in the DS here
         Reader reader = new Reader();
@@ -37,6 +39,18 @@ public class RegAlloc {
         System.out.print("=====================\n");
         System.out.print( oldIR );
         System.out.print("=====================\n");
+
+        String[] tempArr = oldIR.split("\n");
+        ArrayList<String> listOfIR = new ArrayList<String>(Arrays.asList(tempArr)); // Split IR line by line
+
+        int i = 0;
+        while(i < listOfIR.size()){
+            originalIR.add( new ArrayList<String>( Arrays.asList(listOfIR.get(i).split(", ")) ) );
+            System.out.print(" ---");
+            System.out.print( originalIR.get(i).get(0) );
+            System.out.print("\n");
+            i = i + 1;
+        }
     }
     public void genRegAllocNaive(){
         // naive method for generating reg allocation code

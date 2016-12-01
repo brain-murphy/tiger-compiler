@@ -3,6 +3,7 @@ package parser.syntactic;
 import org.junit.Test;
 import parser.ParseCoordinator;
 import parser.semantic.ParseStream;
+import parser.semantic.ir.LinearIr;
 import parser.syntactic.Parser;
 import scanner.DirectScanner;
 import scanner.Scanner;
@@ -31,7 +32,10 @@ public class TestParser {
 
         ParseCoordinator parseCoordinator = new ParseCoordinator(scanner);
 
-        parseCoordinator.getIr();
+        LinearIr temp = parseCoordinator.getIr();
+        System.out.print("==========================================\n");
+        System.out.print( temp.toString() );
+        System.out.print("\n==========================================\n");
         parseCoordinator.getSymbolTable();
     }
 
