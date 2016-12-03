@@ -10,4 +10,10 @@ public class Node {
     public String originalName, regName;
     public int start, end; // live range
     public List<Node> neighbor = new ArrayList<Node>();
+
+    public Node(String s, int n){
+        originalName = s;
+        start = n;
+        end = n;
+    }
 }
