@@ -6,10 +6,7 @@ import scanner.DirectScanner;
 import scanner.Scanner;
 import util.Reader;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Created by fishlinghu on 2016/11/30.
@@ -21,9 +18,15 @@ public class RegAlloc {
         public String op2 = "";
     }
 
+    private class Node{
+
+        public List<Node> nextNode = new ArrayList<Node>();
+    }
+
     private List<List<String>> originalIR = new ArrayList<List<String>>();
     //private List<List<String>> outputIRNaive = new ArrayList<List<String>>();
     List<String> outputIRNaive = new ArrayList<String>();
+    private List<Node> CFGNode = new ArrayList<Node>();
 
     public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
@@ -33,7 +36,7 @@ public class RegAlloc {
     public void inputIR() {
         // parse in the input IR and store in the DS here
         Reader reader = new Reader();
-        String programText = reader.readFromFile("./examples/test4.tiger");
+        String programText = reader.readFromFile("./examples/test5.tiger");
 
         Scanner scanner = new DirectScanner(programText);
 
@@ -60,8 +63,9 @@ public class RegAlloc {
         genRegAllocNaive();
         print_IRNaive();
     }
-    public void genRegAllocNaive(){
+    /*public void genRegAllocNaive(){
         // naive method for generating reg allocation code
+        // bug: when using same variable, just load once
         int i = 0;
         int j, k;
         int inst_size;
@@ -77,24 +81,25 @@ public class RegAlloc {
             callFlag = false;
             branchFlag = false;
             j = 1;// originalIR.get(0) is the operation string
-            if(Objects.equals(opStr, "goto")) {
+            if(Objects.equals(opStr, "GOTO")) {
                 // skip the while loop
                 tempStr = originalIR.get(i).get(0) + ", " + originalIR.get(i).get(1);
                 outputIRNaive.add(tempStr);
                 continue;
             }
-            else if(Objects.equals(opStr, "call")){
+            else if(Objects.equals(opStr, "CALL")){
                 callFlag = true;
                 j = 2; // skip the first 2 strings
             }
-            else if(Objects.equals(opStr, "callr")){
+            else if(Objects.equals(opStr, "CALLR")){
                 // ignore the third string
                 callrFlag = true;
             }
-            else if(opStr.charAt(0) == 'b'){
+            else if(opStr.charAt(0) == 'B'){
                 // branch instruction, ignore the last one
                 branchFlag = true;
-                inst_size = inst_size - 1;
+                //inst_size = inst_size - 1;
+                j = 2;
             }
             while(j < inst_size) {
                 if (callrFlag == true && j == 2)
@@ -124,7 +129,7 @@ public class RegAlloc {
                 else if(callrFlag && j == 2){
                     tempStr = tempStr + ", " + originalIR.get(i).get(j);
                 }
-                else if(branchFlag && j == originalIR.get(i).size()-1){
+                else if(branchFlag && j == 1){
                     tempStr = tempStr + ", " + originalIR.get(i).get(j);
                 }
                 else if(!isNumeric( originalIR.get(i).get(j) )){
@@ -146,7 +151,79 @@ public class RegAlloc {
             }
             i = i + 1;
         }
+    }*/
+    public void genRegAllocNaive(){
+        int i = 0, j;
+        int regCount;
+        String opStr, tempStr;
+        boolean callFlag, callrFlag, branchFlag;
+        while(i < originalIR.size()){
+            Map<String, String> regMap = new HashMap<String, String>();
+            opStr = originalIR.get(i).get(0);
+            j = 1;
+            regCount = 0;
+            callrFlag = false;
+            if(Objects.equals(opStr, "GOTO")) {
+                // skip the while loop
+                tempStr = originalIR.get(i).get(0) + ", " + originalIR.get(i).get(1);
+                outputIRNaive.add(tempStr);
+                i = i + 1;
+                continue;
+            }
+            else if(Objects.equals(opStr, "CALL")){
+                callFlag = true;
+                j = 2; // skip the first 2 strings
+            }
+            else if(Objects.equals(opStr, "CALLR")){
+                // ignore the third string
+                callrFlag = true;
+            }
+            else if(opStr.charAt(0) == 'B'){
+                // branch instruction, ignore the last one
+                branchFlag = true;
+                j = 2;
+            }
+            while(j < originalIR.get(i).size()){
+                if(callrFlag && j == 2)
+                    j = j + 1;
+                tempStr = originalIR.get(i).get(j);
+                if(!isNumeric(tempStr)){
+                    if(!regMap.containsKey( tempStr )){
+                        regMap.put(tempStr, "$t"+regCount);
+                        regCount = regCount + 1;
+                    }
+                }
+                j = j + 1;
+            }
+            // output load instruction
+            for(Map.Entry<String, String> entry: regMap.entrySet()){
+                tempStr = "LOAD, " + entry.getValue() + ", " + entry.getKey();
+                outputIRNaive.add( tempStr );
+            }
+            // output original IR
+            j = 1;
+            String symbol;
+            tempStr = originalIR.get(i).get(0);
+            while(j < originalIR.get(i).size()){
+                symbol = originalIR.get(i).get(j);
+                if(!regMap.containsKey( symbol )){
+                    tempStr = tempStr + ", " + symbol;
+                }
+                else{
+                    tempStr = tempStr + ", " + regMap.get( symbol );
+                }
+                j = j + 1;
+            }
+            outputIRNaive.add( tempStr );
+            // output store inst
+            for(Map.Entry<String, String> entry: regMap.entrySet()){
+                tempStr = "STORE, " + entry.getValue() + ", " + entry.getKey();
+                outputIRNaive.add( tempStr );
+            }
+            i = i + 1;
+        }
     }
+
     public void print_IRNaive(){
         int i = 0;
         System.out.print( outputIRNaive.size() );
@@ -156,7 +233,18 @@ public class RegAlloc {
             i = i + 1;
         }
     }
-    public void genRegAllocCFG(){
+    public void buildCFG(){
+        int i = 0;
+        boolean afterBranch = false;
+        while(i < originalIR.size()){
+            if(i == 0 || afterBranch){
+                afterBranch = false;
+            }
+            i = i + 1;
+        }
+    }
 
+    public void genRegAllocCFG(){
+        buildCFG();
     }
 }
