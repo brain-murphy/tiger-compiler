@@ -18,15 +18,10 @@ public class RegAlloc {
         public String op2 = "";
     }
 
-    private class Node{
-
-        public List<Node> nextNode = new ArrayList<Node>();
-    }
-
     private List<List<String>> originalIR = new ArrayList<List<String>>();
     //private List<List<String>> outputIRNaive = new ArrayList<List<String>>();
     List<String> outputIRNaive = new ArrayList<String>();
-    private List<Node> CFGNode = new ArrayList<Node>();
+    private List<Block> blockList = new ArrayList<Block>();
 
     public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
@@ -233,18 +228,27 @@ public class RegAlloc {
             i = i + 1;
         }
     }
-    public void buildCFG(){
+    public void buildBlocks(){
         int i = 0;
         boolean afterBranch = false;
         while(i < originalIR.size()){
             if(i == 0 || afterBranch){
+                // new block
                 afterBranch = false;
+            }
+            else if(originalIR.get(i).size() == 1 && !Objects.equals(originalIR.get(i).get(0), "_main:")){
+                // next line MIGHT be the beginning of a new block
+                // if it is the target of any branch
+            }
+            else{
+                // this line originalIR.get(i) is not the leader of a new block
+                //
             }
             i = i + 1;
         }
     }
 
     public void genRegAllocCFG(){
-        buildCFG();
+        buildBlocks();
     }
 }
