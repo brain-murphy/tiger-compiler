@@ -26,7 +26,7 @@ public class TestParser {
     @Test
     public void testSemanticParse() {
         Reader reader = new Reader();
-        String programText = reader.readFromFile("./examples/test5.tiger");
+        String programText = reader.readFromFile("./examples/test4.tiger");
 
         Scanner scanner = new DirectScanner(programText);
 
