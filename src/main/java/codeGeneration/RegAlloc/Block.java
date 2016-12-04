@@ -54,6 +54,7 @@ public class Block {
                     }
                     else{
                         // update the end time
+                        nodeMap.get( tempStr ).accessCount += 1;
                         nodeMap.get( tempStr ).end = i;
                     }
                 }
@@ -71,8 +72,9 @@ public class Block {
                     // same node
                     continue;
                 }
-                if(){
+                if(!(entryA.getValue().end < entryB.getValue().start) && !(entryA.getValue().start > entryB.getValue().end)){
                     // find a neighbor
+                    entryA.getValue().neighbor.add( entryB.getValue() );
                 }
             }
         }
