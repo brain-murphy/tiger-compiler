@@ -57,6 +57,7 @@ public class RegAlloc {
         }
         genRegAllocNaive();
         print_IRNaive();
+        genRegAllocCFG();
     }
 
     public void genRegAllocNaive(){
@@ -142,7 +143,7 @@ public class RegAlloc {
     }
     public void buildBlocks(){
         int i = 0;
-        Block newBlock;
+        Block newBlock = new Block();
         boolean afterBranch = false;
         while(i < originalIR.size()){
             if(i == 0 || afterBranch){
@@ -168,6 +169,7 @@ public class RegAlloc {
         i = 0;
         while(i < blockList.size()){
             blockList.get(i).buildCFG();
+            blockList.get(i).doColoring();
             i = i + 1;
         }
     }
