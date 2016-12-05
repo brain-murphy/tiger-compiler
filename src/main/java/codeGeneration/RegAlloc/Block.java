@@ -10,6 +10,7 @@ public class Block {
     public Block nextBlock;
     public List<List<String>> oldIR = new ArrayList<List<String>>();
     public List<String> newIR = new ArrayList<String>();
+    public Map<String, String> usedReg = new HashMap<String, String>();
 
     public int maxRegNum;// initialize it here
 
@@ -100,7 +101,7 @@ public class Block {
             }
         };
         Map<String, Boolean> traversedMap = new HashMap<String, Boolean>();
-        PriorityQueue<Node> untraversedQ = new PriorityQueue<Node>(nodeMap.size(), c);
+        PriorityQueue<Node> untraversedQ = new PriorityQueue<Node>(1, c);
         int numRegUsed = 0;
         // get the starting node to put in the queue
         for(Map.Entry<String, Node> entry: nodeMap.entrySet()){
@@ -109,7 +110,7 @@ public class Block {
 
         int i;
         Node currentNode, node_for_expand;
-        PriorityQueue<Node> processQ = new PriorityQueue<Node>(nodeMap.size(), c);
+        PriorityQueue<Node> processQ = new PriorityQueue<Node>(1, c);
         while( (currentNode = untraversedQ.poll()) != null ){
             if(traversedMap.containsKey(currentNode.originalName))
                 continue;
@@ -143,9 +144,72 @@ public class Block {
                 for(Map.Entry<String, Boolean> entry: regMap.entrySet()){
                     node_for_expand.assigned = true;
                     node_for_expand.regName = entry.getKey();
+                    if(!usedReg.containsKey(entry.getKey()))
+                        usedReg.put(entry.getKey(), node_for_expand.originalName);
                     break;
                 }
             }
+        }
+    }
+    public void printNode(){
+        // load an initial set of registers
+        Map<String, String> loadedVar = new HashMap<String, String>();
+        String tempStr, storeStr, loadStr;
+        for(Map.Entry<String, String> entry: usedReg.entrySet()){
+            tempStr = "LOAD, " + entry.getKey() + ", " + entry.getValue();
+            loadedVar.put( entry.getValue(), entry.getKey() );
+            newIR.add(tempStr);
+        }
+        Node currentNode;
+        String word;
+        int i, j;
+        i = 0;
+        while(i < oldIR.size()){
+            tempStr = oldIR.get(i).get(0); // the op string
+            j = 1;
+            while(j < oldIR.get(i).size()){
+                word = oldIR.get(i).get(j);
+                if(nodeMap.containsKey( word )){
+                    // it is a variable
+                    if(!loadedVar.containsKey( word )){
+                        // the variable is not loaded
+                        currentNode = nodeMap.get(word);
+                        if(usedReg.containsKey(currentNode.regName)) {
+                            // the register is in used
+                            // first add a store instruction, and remove the target variable from loaded map
+                            storeStr = "STORE, " + currentNode.regName + ", " + usedReg.get(currentNode.regName);
+                            newIR.add(storeStr);
+                            loadedVar.remove( usedReg.get(currentNode.regName) );
+                        }
+                        // add a load instruction for the new variable "word"
+                        loadStr = "LOAD, " + currentNode.regName + ", " + word;
+                        // add word to loadedVar
+                        loadedVar.put(word, currentNode.regName);
+                        usedReg.put(currentNode.regName, word);
+                        newIR.add(loadStr);
+                    }
+                    tempStr = tempStr + ", " + loadedVar.get( word );
+                }
+                else{
+                    // not a variable
+                    tempStr = tempStr + ", " + word;
+                }
+                j = j + 1;
+            }
+            newIR.add(tempStr);
+            // read the original IR line by line
+            i = i + 1;
+        }
+        // add store instrution at the end of block
+        for(Map.Entry<String, String> entry: loadedVar.entrySet()){
+            tempStr = "STORE, " + entry.getValue() + ", " + entry.getKey();
+            newIR.add(tempStr);
+        }
+        // print the new IR
+        i = 0;
+        while(i < newIR.size()){
+            System.out.print( newIR.get(i) );
+            i = i + 1;
         }
     }
 }

@@ -170,6 +170,7 @@ public class RegAlloc {
         while(i < blockList.size()){
             blockList.get(i).buildCFG();
             blockList.get(i).doColoring();
+            blockList.get(i).printNode();
             i = i + 1;
         }
     }
