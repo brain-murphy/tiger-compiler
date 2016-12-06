@@ -19,6 +19,10 @@ public class FunctionCallCode implements IrCode {
         this(null, op, function, args);
     }
 
+    public Symbol getFunctionSymbol() {
+        return function;
+    }
+
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();

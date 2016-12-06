@@ -1,4 +1,5 @@
 let
+        var x: int := 0;
         function myPrint ( n : int ) begin
                 printi(n);
         end;

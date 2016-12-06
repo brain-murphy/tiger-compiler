@@ -1,8 +1,8 @@
 package codeGeneration.instructionSelection.mips
 
 class MipsFormatter() {
-    val dataSegment = mutableListOf<AssemblerVariable>()
-    val textSegment = mutableListOf<MipsInstruction>()
+    private val dataSegment = mutableListOf<AssemblerVariable>()
+    private val textSegment = mutableListOf<MipsInstruction>()
 
     fun addVariable(variable: AssemblerVariable) {
         dataSegment.add(variable)

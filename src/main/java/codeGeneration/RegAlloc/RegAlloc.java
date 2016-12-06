@@ -52,7 +52,7 @@ public class RegAlloc {
 
     }
 
-    @org.junit.Test
+//    @org.junit.Test
     public void inputIR() {
         // parse in the input IR and store in the DS here
         Reader reader = new Reader();

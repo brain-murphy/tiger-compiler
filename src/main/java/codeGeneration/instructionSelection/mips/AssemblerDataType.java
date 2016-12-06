@@ -6,7 +6,8 @@ public enum AssemblerDataType {
     BYTE("byte"),
     HALFWORD("halfword"),
     WORD("word"),
-    SPACE("space");
+    SPACE("space"),
+    FLOAT("float");
 
     private String mipsAssemblyName;
 
