@@ -66,7 +66,6 @@ public class RegAlloc {
                 // re emit label
                 naiveIR.emit(currentIR);
             } else if (currentIR instanceof FunctionCallCode) {
-                // do something
                 FunctionCallCode funcCode = (FunctionCallCode) currentIR;
                 String regName = "$t";
                 Object tempObj;
