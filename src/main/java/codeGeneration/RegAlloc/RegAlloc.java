@@ -57,6 +57,9 @@ public class RegAlloc {
         }
         genRegAllocNaive();
         print_IRNaive();
+        System.out.print("======================\n");
+        System.out.print("CFG coloring: \n");
+        System.out.print("======================\n");
         genRegAllocCFG();
     }
 
@@ -168,6 +171,7 @@ public class RegAlloc {
         }
         i = 0;
         while(i < blockList.size()){
+            blockList.get(i).generateNode();
             blockList.get(i).buildCFG();
             blockList.get(i).doColoring();
             blockList.get(i).printNode();

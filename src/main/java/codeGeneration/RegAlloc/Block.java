@@ -24,9 +24,11 @@ public class Block {
         int i = 0, j;
         String opStr, tempStr;
         Boolean callFlag, callrFlag, branchFlag;
+        //System.out.print("Size of OLD IR: " + oldIR.size());
         while(i < oldIR.size()){
             //
             opStr = oldIR.get(i).get(0);
+            //System.out.print("OPPPPPP: " + opStr + "\n");
             j = 1;
             callrFlag = false;
             if(Objects.equals(opStr, "GOTO")) {
@@ -55,6 +57,7 @@ public class Block {
                     if(!nodeMap.containsKey(tempStr)){
                         // a new node
                         newNode = new Node(tempStr, i); // start time is initialized here
+                        nodeMap.put(tempStr, newNode);
                     }
                     else{
                         // update the end time
@@ -107,7 +110,8 @@ public class Block {
         for(Map.Entry<String, Node> entry: nodeMap.entrySet()){
             untraversedQ.offer( entry.getValue() );
         }
-
+        System.out.print("New block: \n");
+        //System.out.print("Size of nodeMap: " + nodeMap.size() + "\n");
         int i;
         Node currentNode, node_for_expand;
         PriorityQueue<Node> processQ = new PriorityQueue<Node>(1, c);
@@ -119,33 +123,40 @@ public class Block {
             while( (node_for_expand = processQ.poll()) != null ){
                 // expand from the front node, update the traversedMap, assign register
                 // Check how many register we can use
+                //System.out.print("While 1111111111111111111\n");
                 Map<String, Boolean> regMap = new HashMap<String, Boolean>();{
-                    regMap.put("t0", true);
-                    regMap.put("t1", true);
-                    regMap.put("t2", true);
-                    regMap.put("t3", true);
-                    regMap.put("t4", true);
-                    regMap.put("t5", true);
-                    regMap.put("t6", true);
-                    regMap.put("t7", true);
-                    regMap.put("t8", true);
-                    regMap.put("t9", true);
+                    regMap.put("$t0", true);
+                    regMap.put("$t1", true);
+                    regMap.put("$t2", true);
+                    regMap.put("$t3", true);
+                    regMap.put("$t4", true);
+                    regMap.put("$t5", true);
+                    regMap.put("$t6", true);
+                    regMap.put("$t7", true);
+                    regMap.put("$t8", true);
+                    regMap.put("$t9", true);
                 }
                 // check which registers are used, also put the untraversed register into the queue
                 i = 0;
                 while(i < node_for_expand.neighbor.size()){
+                    //System.out.print("While 2222222222222222\n");
                     if( regMap.containsKey( node_for_expand.neighbor.get(i).regName ) )
                         regMap.remove( node_for_expand.neighbor.get(i).regName );
-                    if( !traversedMap.containsKey( node_for_expand.neighbor.get(i).originalName ) )
-                        processQ.offer( node_for_expand.neighbor.get(i) );
+                    if( !traversedMap.containsKey( node_for_expand.neighbor.get(i).originalName ) ) {
+                        processQ.offer(node_for_expand.neighbor.get(i));
+                        traversedMap.put(node_for_expand.neighbor.get(i).originalName, true);
+                    }
                     i = i + 1;
                 }
                 // the rest are register we can used
                 for(Map.Entry<String, Boolean> entry: regMap.entrySet()){
                     node_for_expand.assigned = true;
                     node_for_expand.regName = entry.getKey();
-                    if(!usedReg.containsKey(entry.getKey()))
+                    if(!usedReg.containsKey(entry.getKey())) {
+                        //System.out.print( entry.getKey() );
+                        //System.out.print("\n");
                         usedReg.put(entry.getKey(), node_for_expand.originalName);
+                    }
                     break;
                 }
             }
@@ -166,6 +177,7 @@ public class Block {
         i = 0;
         while(i < oldIR.size()){
             tempStr = oldIR.get(i).get(0); // the op string
+            //System.out.print(tempStr);
             j = 1;
             while(j < oldIR.get(i).size()){
                 word = oldIR.get(i).get(j);
@@ -203,12 +215,14 @@ public class Block {
         // add store instrution at the end of block
         for(Map.Entry<String, String> entry: loadedVar.entrySet()){
             tempStr = "STORE, " + entry.getValue() + ", " + entry.getKey();
+            // System.out.print(tempStr);
             newIR.add(tempStr);
         }
         // print the new IR
         i = 0;
         while(i < newIR.size()){
             System.out.print( newIR.get(i) );
+            System.out.print("\n");
             i = i + 1;
         }
     }
