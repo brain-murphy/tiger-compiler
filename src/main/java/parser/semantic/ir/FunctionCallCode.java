@@ -1,6 +1,7 @@
 package parser.semantic.ir;
 
 import parser.semantic.symboltable.Symbol;
+import parser.semantic.symboltable.SymbolTableEntry;
 
 public class FunctionCallCode implements IrCode {
     private Symbol r1;
@@ -18,6 +19,16 @@ public class FunctionCallCode implements IrCode {
     public FunctionCallCode(IrOperation op, Symbol function, Symbol... args) {
         this(null, op, function, args);
     }
+
+    public IrOperation getOp() {
+        return op;
+    }
+
+    public SymbolTableEntry getR1() {
+        return r1;
+    }
+
+    public Symbol[] getArgs() { return args; }
 
     @Override
     public String toString() {

@@ -11,12 +11,12 @@ class InstructionSelector(private val ir: LinearIr, private val symbolTable: Sym
 
     private val formatter = MipsFormatter()
 
-    fun run() {
+    /*fun run() {
         val usedFunctionSymbols = ir.filterIsInstance<FunctionCallCode>()
                 .map { it.functionSymbol }
                 .distinctBy { it.name }
 
         symbolTable.getChildScope()
 
-    }
+    }*/
 }
