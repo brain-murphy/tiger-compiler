@@ -1,7 +1,8 @@
 package codeGeneration.RegAlloc;
 
 import parser.ParseCoordinator;
-import parser.semantic.ir.LinearIr;
+import parser.semantic.ir.*;
+import parser.semantic.symboltable.Symbol;
 import scanner.DirectScanner;
 import scanner.Scanner;
 import util.Reader;
@@ -25,6 +26,30 @@ public class RegAlloc {
 
     public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
+    }
+
+
+    private void addLoadToIr(LinearIr ir) {
+
+        IrCode firstCodeInIr = ir.getCodeSequence().get(0);
+
+        if (firstCodeInIr instanceof Label) {
+            // re emit label
+        } else if (firstCodeInIr instanceof FunctionCallCode) {
+            // do something
+        } else if (firstCodeInIr instanceof ThreeAddressCode) {
+            ThreeAddressCode instructionWithVariables = (ThreeAddressCode) firstCodeInIr;
+
+            // do some register allocation actions
+
+            Symbol exampleDestinationSymbol = null;
+
+            IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR1(), IrOperation.LOAD, exampleDestinationSymbol, null /*or offset*/);
+
+            int instructionIndex = 1;
+            ir.insert(instructionIndex, loadInstruction);
+        }
+
     }
 
     @org.junit.Test

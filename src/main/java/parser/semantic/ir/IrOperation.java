@@ -19,5 +19,7 @@ public enum IrOperation {
     CALL,
     CALLR,
     ARRAY_STORE,
-    ARRAY_LOAD
+    ARRAY_LOAD,
+    LOAD,
+    STORE
 }

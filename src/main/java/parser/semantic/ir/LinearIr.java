@@ -16,6 +16,10 @@ public class LinearIr implements Iterable<IrCode> {
         Collections.addAll(codeSequence, instructions);
     }
 
+    public void insert(int index, IrCode instruction) {
+        codeSequence.add(index, instruction);
+    }
+
     @Override
     public Iterator<IrCode> iterator() {
         return codeSequence.iterator();
