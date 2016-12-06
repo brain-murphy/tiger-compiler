@@ -157,7 +157,16 @@ public class Block {
                         //System.out.print("\n");
                         usedReg.put(entry.getKey(), node_for_expand.originalName);
                     }
+                    else{
+                        Node node1 = nodeMap.get(usedReg.get( entry.getKey() ));
+                        if(node1.start > node_for_expand.start){
+                            usedReg.put(entry.getKey(), node_for_expand.originalName);
+                        }
+                    }
                     break;
+                }
+                if(regMap.size() == 0){
+                    // out of register
                 }
             }
         }

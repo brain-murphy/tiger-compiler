@@ -185,7 +185,7 @@ public class RegAlloc {
 
     }
 
-//    @org.junit.Test
+    @org.junit.Test
     public void inputIR() {
         // parse in the input IR and store in the DS here
         Reader reader = new Reader();
@@ -219,11 +219,11 @@ public class RegAlloc {
             i = i + 1;
         }
         /*genRegAllocNaive();
-        print_IRNaive();
+        print_IRNaive();*/
         System.out.print("======================\n");
         System.out.print("CFG coloring: \n");
         System.out.print("======================\n");
-        genRegAllocCFG();*/
+        genRegAllocCFG();
     }
 
     public void genRegAllocNaive(){
@@ -324,7 +324,7 @@ public class RegAlloc {
                 newBlock = new Block();
                 blockList.add(newBlock);
             }
-            else if(originalIR.get(i).get(0).charAt(0) == 'B'){
+            else if(originalIR.get(i).get(0).charAt(0) == 'B' || Objects.equals(originalIR.get(i).get(0), "RETURN")){
                 afterBranch = true;
             }
             // populate the line into block
@@ -344,5 +344,70 @@ public class RegAlloc {
 
     public void genRegAllocCFG(){
         buildBlocks();
+    }
+    public void genRegAllocBonus(LinearIr ir){
+        buildBlocksBonus(ir);
+    }
+    public void buildBlocksBonus(LinearIr ir){
+        Boolean branchNext = false;
+        IrCode currentIR;
+        BlockBonus newBlock = new BlockBonus();
+        int i = 0;
+        while(i < ir.getCodeSequence().size()){
+            currentIR = ir.getCodeSequence().get(i);
+            if(i == 0 || currentIR instanceof Label || branchNext){
+                newBlock = new BlockBonus();
+                branchNext = false;
+            }
+            if(currentIR instanceof Label){
+                IrCodeExtend newIr = new IrCodeExtend(currentIR);
+                newBlock.IrList.add( newIr );
+            }
+            else if(currentIR instanceof FunctionCallCode){
+                // function call
+                IrCodeExtend newIr = new IrCodeExtend(currentIR);
+                newBlock.IrList.add( newIr );
+                FunctionCallCode funcCall = (FunctionCallCode) currentIR;
+                if(funcCall.getR1() != null){
+                    // caller
+                    newIr.def.add( (Symbol) funcCall.getR1() );
+                }
+                int j = 0;
+                Symbol[] args = funcCall.getArgs();
+                while(j < args.length){
+                    newIr.use.add( args[j] );
+                    newIr.in.put( args[j], true );
+                    j = j + 1;
+                }
+            }
+            else{
+                // three addr code
+                ThreeAddressCode threeAddr = (ThreeAddressCode) currentIR;
+                // create newIr
+                IrCodeExtend newIr = new IrCodeExtend(currentIR);
+                newBlock.IrList.add( newIr );
+                if(threeAddr.getOp() == IrOperation.BREQ
+                        || threeAddr.getOp() == IrOperation.BRGEQ
+                        || threeAddr.getOp() == IrOperation.BRGT
+                        || threeAddr.getOp() == IrOperation.BRLEQ
+                        || threeAddr.getOp() == IrOperation.BRLT
+                        || threeAddr.getOp() == IrOperation.BRNEQ){
+                    branchNext = true;
+                }
+                // r1, r2, r3 could be symbol and label, ignore label
+                if(threeAddr.getR1() != null && !(threeAddr.getR1() instanceof Label)){
+                    newIr.def.add( (Symbol)threeAddr.getR1() );
+                }
+                if(threeAddr.getR2() != null && !(threeAddr.getR2() instanceof Label)){
+                    newIr.use.add( (Symbol)threeAddr.getR2() );
+                    newIr.in.put( (Symbol)threeAddr.getR2(), true );
+                }
+                if(threeAddr.getR3() != null && !(threeAddr.getR3() instanceof Label)){
+                    newIr.use.add( (Symbol)threeAddr.getR3() );
+                    newIr.in.put( (Symbol)threeAddr.getR3(), true );
+                }
+            }
+            i = i + 1;
+        }
     }
 }
