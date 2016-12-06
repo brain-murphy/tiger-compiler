@@ -2,7 +2,9 @@ let
         var a, b : int := 0;
 
         function testFunction(n: int) begin
+            a := n + 1;
             printi(n);
+            a := n + 1;
         end;
 in
         if(a = b) then
