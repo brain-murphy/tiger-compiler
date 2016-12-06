@@ -73,23 +73,29 @@ public class RegAlloc {
                 int regCount = 0;
                 if(funcCode.getR1() != null){
                     Symbol oldSymbol = (Symbol) funcCode.getR1();
-                    destSymbol = new Symbol( regName+Integer.toString(regCount) );
-                    regCount = regCount + 1;
-                    // copy the attribute
-                    for(Attribute att: Attribute.values()){
-                        tempObj = oldSymbol.getAttribute( att );
-                        if(tempObj != null){
-                            destSymbol.putAttribute(att, tempObj);
+                    if(!varToReg.containsKey(oldSymbol)){
+                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        regCount = regCount + 1;
+                        // copy the attribute
+                        for(Attribute att: Attribute.values()){
+                            tempObj = oldSymbol.getAttribute( att );
+                            if(tempObj != null){
+                                destSymbol.putAttribute(att, tempObj);
+                            }
                         }
+                        IrCode loadInstruction = new ThreeAddressCode(funcCode.getR1(), IrOperation.LOAD, destSymbol, null);
+                        naiveIR.emit(loadInstruction);
+                        varToReg.put(oldSymbol, destSymbol);
                     }
-                    IrCode loadInstruction = new ThreeAddressCode(funcCode.getR1(), IrOperation.LOAD, destSymbol, null);
-                    naiveIR.emit(loadInstruction);
-                    varToReg.put(oldSymbol, destSymbol);
                 }
                 // iterate through args
                 Symbol[] args = funcCode.getArgs();
                 int j = 0;
                 while(j < args.length){
+                    if(varToReg.containsKey(args[j])){
+                        j = j + 1;
+                        continue;
+                    }
                     destSymbol = new Symbol( regName+Integer.toString(regCount) );
                     regCount = regCount + 1;
                     for(Attribute att: Attribute.values()){
@@ -98,12 +104,16 @@ public class RegAlloc {
                             destSymbol.putAttribute(att, tempObj);
                         }
                     }
-                    IrCode loadInstruction = new ThreeAddressCode(funcCode.getR1(), IrOperation.LOAD, destSymbol, null);
+                    IrCode loadInstruction = new ThreeAddressCode(args[j], IrOperation.LOAD, destSymbol, null);
                     naiveIR.emit(loadInstruction);
                     varToReg.put(args[j], destSymbol);
                     j = j + 1;
                 }
                 naiveIR.emit(currentIR);
+                for(Map.Entry<Symbol, Symbol> entry: varToReg.entrySet()) {
+                    IrCode storeInstruction = new ThreeAddressCode(entry.getKey(), IrOperation.STORE, entry.getValue(), null);
+                    naiveIR.emit(storeInstruction);
+                }
             } else if (currentIR instanceof ThreeAddressCode) {
                 ThreeAddressCode instructionWithVariables = (ThreeAddressCode) currentIR;
                 Symbol exampleDestinationSymbol = null;
@@ -114,48 +124,54 @@ public class RegAlloc {
                 // do some register allocation actions
                 if(instructionWithVariables.getR1() != null && (instructionWithVariables.getR1() instanceof Symbol)){
                     Symbol oldSymbol = (Symbol) instructionWithVariables.getR1();
-                    destSymbol = new Symbol( regName+Integer.toString(regCount) );
-                    regCount = regCount + 1;
-                    // copy the attribute
-                    for(Attribute att: Attribute.values()){
-                        tempObj = oldSymbol.getAttribute( att );
-                        if(tempObj != null){
-                            destSymbol.putAttribute(att, tempObj);
+                    if(!varToReg.containsKey(oldSymbol)){
+                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        regCount = regCount + 1;
+                        // copy the attribute
+                        for(Attribute att: Attribute.values()){
+                            tempObj = oldSymbol.getAttribute( att );
+                            if(tempObj != null){
+                                destSymbol.putAttribute(att, tempObj);
+                            }
                         }
+                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR1(), IrOperation.LOAD, destSymbol, null);
+                        naiveIR.emit(loadInstruction);
+                        varToReg.put(oldSymbol, destSymbol);
                     }
-                    IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR1(), IrOperation.LOAD, destSymbol, null);
-                    naiveIR.emit(loadInstruction);
-                    varToReg.put(oldSymbol, destSymbol);
                 }
                 if(instructionWithVariables.getR2() != null && (instructionWithVariables.getR2() instanceof Symbol)){
                     Symbol oldSymbol = (Symbol) instructionWithVariables.getR2();
-                    destSymbol = new Symbol( regName+Integer.toString(regCount) );
-                    regCount = regCount + 1;
-                    // copy the attribute
-                    for(Attribute att: Attribute.values()){
-                        tempObj = oldSymbol.getAttribute( att );
-                        if(tempObj != null){
-                            destSymbol.putAttribute(att, tempObj);
+                    if(!varToReg.containsKey(oldSymbol)){
+                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        regCount = regCount + 1;
+                        // copy the attribute
+                        for(Attribute att: Attribute.values()){
+                            tempObj = oldSymbol.getAttribute( att );
+                            if(tempObj != null){
+                                destSymbol.putAttribute(att, tempObj);
+                            }
                         }
+                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR2(), IrOperation.LOAD, destSymbol, null);
+                        naiveIR.emit(loadInstruction);
+                        varToReg.put(oldSymbol, destSymbol);
                     }
-                    IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR2(), IrOperation.LOAD, destSymbol, null);
-                    naiveIR.emit(loadInstruction);
-                    varToReg.put(oldSymbol, destSymbol);
                 }
                 if(instructionWithVariables.getR3() != null && (instructionWithVariables.getR3() instanceof Symbol)){
                     Symbol oldSymbol = (Symbol) instructionWithVariables.getR3();
-                    destSymbol = new Symbol( regName+Integer.toString(regCount) );
-                    regCount = regCount + 1;
-                    // copy the attribute
-                    for(Attribute att: Attribute.values()){
-                        tempObj = oldSymbol.getAttribute( att );
-                        if(tempObj != null){
-                            destSymbol.putAttribute(att, tempObj);
+                    if(!varToReg.containsKey(oldSymbol)){
+                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        regCount = regCount + 1;
+                        // copy the attribute
+                        for(Attribute att: Attribute.values()){
+                            tempObj = oldSymbol.getAttribute( att );
+                            if(tempObj != null){
+                                destSymbol.putAttribute(att, tempObj);
+                            }
                         }
+                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR3(), IrOperation.LOAD, destSymbol, null);
+                        naiveIR.emit(loadInstruction);
+                        varToReg.put(oldSymbol, destSymbol);
                     }
-                    IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR3(), IrOperation.LOAD, destSymbol, null);
-                    naiveIR.emit(loadInstruction);
-                    varToReg.put(oldSymbol, destSymbol);
                 }
                 naiveIR.emit( currentIR );
                 // emit store
