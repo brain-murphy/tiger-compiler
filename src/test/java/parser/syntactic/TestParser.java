@@ -3,6 +3,7 @@ package parser.syntactic;
 import org.junit.Test;
 import parser.ParseCoordinator;
 import parser.semantic.ParseStream;
+import parser.semantic.ir.LinearIr;
 import parser.syntactic.Parser;
 import scanner.DirectScanner;
 import scanner.Scanner;
@@ -25,13 +26,16 @@ public class TestParser {
     @Test
     public void testSemanticParse() {
         Reader reader = new Reader();
-        String programText = reader.readFromFile("./examples/test5.tiger");
+        String programText = reader.readFromFile("./examples/test4.tiger");
 
         Scanner scanner = new DirectScanner(programText);
 
         ParseCoordinator parseCoordinator = new ParseCoordinator(scanner);
 
-        parseCoordinator.getIr();
+        LinearIr temp = parseCoordinator.getIr();
+        System.out.print("==========================================\n");
+        System.out.print( temp.toString() );
+        System.out.print("\n==========================================\n");
         parseCoordinator.getSymbolTable();
     }
 

@@ -1,6 +1,5 @@
 package parser.semantic.ir
 
-import com.sun.deploy.security.ValidationState
 import parser.semantic.ParseStream
 import parser.semantic.SemanticException
 import parser.semantic.symboltable.Attribute

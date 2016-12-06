@@ -13,8 +13,8 @@ public class RegAlloc {
         public String op2 = "";
     }
 
-    private List<List<String>> orignalIR = new ArrayList<List<String>>;
-    private List<List<String>> outputIRNaive = new ArrayList<List<String>>;
+    private List<List<String>> orignalIR = new ArrayList<List<String>>();
+    private List<List<String>> outputIRNaive = new ArrayList<List<String>>();
 
     public void inputIR() {
         // parse in the input IR and store in the DS here
