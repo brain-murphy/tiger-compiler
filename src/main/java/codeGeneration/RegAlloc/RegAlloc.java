@@ -109,7 +109,8 @@ public class RegAlloc {
                     varToReg.put(args[j], destSymbol);
                     j = j + 1;
                 }
-                naiveIR.emit(currentIR);
+
+                naiveIR.emit(((FunctionCallCode) currentIR).withNewArguments(varToReg.values().toArray(new Symbol[varToReg.size()])));
                 for(Map.Entry<Symbol, Symbol> entry: varToReg.entrySet()) {
                     IrCode storeInstruction = new ThreeAddressCode(entry.getKey(), IrOperation.STORE, entry.getValue(), null);
                     naiveIR.emit(storeInstruction);

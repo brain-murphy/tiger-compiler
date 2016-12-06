@@ -66,7 +66,12 @@ public enum MipsOpcode {
     mflo(1, false),
 
     mfcZ(2, false),
-    mtcZ(2, false);
+    mtcZ(2, false),
+
+    add_s(3, false),
+    sub_s(3, false),
+    mul_s(3, false),
+    div_s(3, false);
 
     private int argCount;
     private boolean usesOffsetNotation;

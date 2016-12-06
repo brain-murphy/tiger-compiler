@@ -6,13 +6,15 @@ import parser.semantic.ir.*
 import parser.semantic.symboltable.Attribute
 import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTable
+import parser.semantic.symboltable.SymbolTableEntry
+import java.lang.reflect.Type
 
 
 class InstructionSelector(private val ir: LinearIr, private val symbolTable: SymbolTable) {
 
     private val formatter = MipsFormatter()
 
-    private val globalVariableNames = mutableListOf<String>()
+    private val globalVarGpOffsets = mutableMapOf<String, Int>()
     private val functionSymbols = mutableListOf<Symbol>()
 
     fun run() {
@@ -25,7 +27,7 @@ class InstructionSelector(private val ir: LinearIr, private val symbolTable: Sym
 
         val functionSegments = getFunctionInstructionLists()
 
-        val stackInstructionSelector = StackInstructionSelector(globalVariableNames)
+//        val stackInstructionSelector = StackInstructionSelector(globalVarGpOffsets)
 
         for (instructionList in functionSegments) {
 
@@ -74,6 +76,7 @@ class InstructionSelector(private val ir: LinearIr, private val symbolTable: Sym
 
         var currentInstruction = irIterator.next()
 
+        var globalPointerOffset = 0
         while (currentInstruction is ThreeAddressCode) {
             assertIsAssignmentInstruction(currentInstruction)
 
@@ -81,13 +84,50 @@ class InstructionSelector(private val ir: LinearIr, private val symbolTable: Sym
             val variableType = variableSymbol.getAttribute(Attribute.TYPE) as ExpressionType
 
             val variableName = variableSymbol.name
-            globalVariableNames.add(variableName)
+            globalVarGpOffsets.put(variableName, globalPointerOffset)
+
+            globalPointerOffset += variableType.size
 
             val value = (currentInstruction.r2 as Symbol).getAttribute(Attribute.LITERAL_VALUE)
 
             val assemblerVariable = createAssemblerVariable(variableName, variableType, value)
             formatter.addVariable(assemblerVariable)
         }
+
+        val literals = getLiterals()
+
+        literals.forEach {
+
+            val literalType = it.getAttribute(Attribute.TYPE) as ExpressionType
+            val literalName = it.name
+
+            globalVarGpOffsets.put(literalName, globalPointerOffset)
+
+            globalPointerOffset += literalType.size
+
+            val value = it.getAttribute(Attribute.LITERAL_VALUE)
+
+            formatter.addVariable(createAssemblerVariable(literalName, literalType, value))
+        }
+    }
+
+    private fun getLiterals(): List<Symbol> {
+        val allSymbols = mutableListOf<SymbolTableEntry>()
+        ir.filterIsInstance<ThreeAddressCode>().forEach {
+            allSymbols.add(it.r1)
+            allSymbols.add(it.r2)
+            allSymbols.add(it.r3)
+        }
+        ir.filterIsInstance<FunctionCallCode>().forEach {
+            allSymbols.add(it.r1)
+            allSymbols.addAll(it.args)
+        }
+
+        val literals = allSymbols
+                .filterIsInstance<Symbol>()
+                .filter { it.getAttribute(Attribute.IS_LITERAL) as Boolean }
+                .distinct()
+        return literals
     }
 
     fun assertIsAssignmentInstruction(instruction: ThreeAddressCode) {
