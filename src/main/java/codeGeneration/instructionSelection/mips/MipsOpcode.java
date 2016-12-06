@@ -1,70 +1,86 @@
 package codeGeneration.instructionSelection.mips;
 
 public enum MipsOpcode {
-    add,
-    addu,
-    addi,
-    addiu,
+    add(3, false),
+    addu(3, false),
+    addi(3, false),
+    addiu(3, false),
 
-    sub,
-    subu,
+    sub(3, false),
+    subu(3, false),
 
-    mult,
-    multu,
+    mult(2, false),
+    multu(2, false),
 
-    div,
-    divu,
+    div(2, false),
+    divu(2, false),
 
-    and,
-    andi,
+    and(3, false),
+    andi(3, false),
 
-    or,
-    ori,
+    or(3, false),
+    ori(3, false),
 
-    xor,
-    xori,
+    xor(3, false),
+    xori(3, false),
 
-    nor,
-
-
-    sll,
-    sllv,
+    nor(3, false),
 
 
-    srl,
-    sra,
-    srlv,
-    srav,
-
-    slt,
-    sltu,
-    slti,
+    sll(3, false),
+    sllv(3, false),
 
 
-    beq,
-    bne,
+    srl(3, false),
+    sra(3, false),
+    srlv(3, false),
+    srav(3, false),
 
-    j,
-    jr,
-    jal,
+    slt(3, false),
+    sltu(3, false),
+    slti(3, false),
 
 
-    lw,
-    lh,
-    lhu,
+    beq(3, false),
+    bne(3, false),
 
-    lb,
-    lbu,
+    j(1, false),
+    jr(1, false),
+    jal(1, false),
 
-    sw,
-    sh,
-    sb,
 
-    lui,
+    lw(3, true),
+    lh(3, true),
+    lhu(3, true),
 
-    mfhi,
-    mflo,
+    lb(3, true),
+    lbu(3, true),
 
-    mfcZ,
-    mtcZ,
+    sw(3, true),
+    sh(3, true),
+    sb(3, true),
+
+    lui(2, false),
+
+    mfhi(1, false),
+    mflo(1, false),
+
+    mfcZ(2, false),
+    mtcZ(2, false);
+
+    private int argCount;
+    private boolean usesOffsetNotation;
+
+    MipsOpcode(int argCount, boolean usesOffsetNotation) {
+        this.argCount = argCount;
+        this.usesOffsetNotation = usesOffsetNotation;
+    }
+
+    public int getArgCount() {
+        return argCount;
+    }
+
+    public boolean usesOffsetSyntax() {
+        return usesOffsetNotation;
+    }
 }
