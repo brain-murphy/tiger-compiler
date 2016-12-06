@@ -5,7 +5,9 @@ import parser.semantic.ir.Label
 import parser.semantic.symboltable.Symbol
 import parser.semantic.symboltable.SymbolTableEntry
 
-class MipsInstruction(val opcode: MipsOpcode, vararg val params: SymbolTableEntry) {
+
+
+class MipsInstruction(val opcode: MipsOpcode, vararg val params: String) {
     override fun toString(): String {
         val stringBuilder = StringBuilder()
 
