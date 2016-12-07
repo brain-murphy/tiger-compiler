@@ -1,5 +1,6 @@
 package codeGeneration.RegAlloc;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import parser.ParseCoordinator;
 import parser.semantic.ir.*;
 import parser.semantic.symboltable.Attribute;
@@ -29,6 +30,7 @@ public class RegAlloc {
     private List<BlockBonus> blockBonusList = new ArrayList<BlockBonus>();
     // need a map for bonus block
     private Map<IrCode, BlockBonus> blockBonusMap = new HashMap<>();
+    private Map<String, ArrayList<Web>> varToWeb = new HashMap<String, ArrayList<Web>>();
 
     public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
@@ -210,6 +212,9 @@ public class RegAlloc {
         System.out.print( naiveIR.toString() );
         System.out.print("\n=====================\n");
 
+        genRegAllocBonus(temp);
+        debugPrintLiveAnalysis();
+
         String[] tempArr = oldIR.split("\n");
         ArrayList<String> listOfIR = new ArrayList<String>(Arrays.asList(tempArr)); // Split IR line by line
 
@@ -223,10 +228,10 @@ public class RegAlloc {
         }
         /*genRegAllocNaive();
         print_IRNaive();*/
-        System.out.print("======================\n");
+        /*System.out.print("======================\n");
         System.out.print("CFG coloring: \n");
         System.out.print("======================\n");
-        genRegAllocCFG();
+        genRegAllocCFG();*/
     }
 
     public void genRegAllocNaive(){
@@ -350,6 +355,10 @@ public class RegAlloc {
     }
     public void genRegAllocBonus(LinearIr ir){
         buildBlocksBonus(ir);
+        buildBlocksBonusCFG();
+        linkIRinBlocks();
+        liveAnalysis();
+        constructWeb();
     }
     public void buildBlocksBonus(LinearIr ir){
         Boolean branchNext = false;
@@ -409,18 +418,24 @@ public class RegAlloc {
                     newIr.def = (Symbol)threeAddr.getR1();
                 }
                 if(threeAddr.getR2() != null){
-                    newIr.use.add( (Symbol)threeAddr.getR2() );
-                    newIr.in.put( (Symbol)threeAddr.getR2(), true );
+                    Symbol tempSymbol = (Symbol) threeAddr.getR2();
+                    if( tempSymbol.getAttribute(Attribute.IS_LITERAL) == null ) {
+                        newIr.use.add((Symbol) threeAddr.getR2());
+                        newIr.in.put((Symbol) threeAddr.getR2(), true);
+                    }
                 }
                 if(threeAddr.getR3() != null){
-                    newIr.use.add( (Symbol)threeAddr.getR3() );
-                    newIr.in.put( (Symbol)threeAddr.getR3(), true );
+                    Symbol tempSymbol = (Symbol) threeAddr.getR3();
+                    if( tempSymbol.getAttribute(Attribute.IS_LITERAL) == null ) {
+                        newIr.use.add((Symbol) threeAddr.getR3());
+                        newIr.in.put((Symbol) threeAddr.getR3(), true);
+                    }
                 }
             }
             i = i + 1;
         }
     }
-    public void buildBlocksCFG(){
+    public void buildBlocksBonusCFG(){
         // populated the prev and next list in blockBonus obj
         int i = 0;
         IrCode tailIR;
@@ -453,11 +468,11 @@ public class RegAlloc {
                         currentBlock.next.add( blockBonusList.get(i+1) );
                     }
                 }
-                else if(threeAddr.getOp() == IrOperation.GOTO || threeAddr.getOp() == IrOperation.RETURN){
+                /*else if(threeAddr.getOp() == IrOperation.GOTO || threeAddr.getOp() == IrOperation.RETURN){
                     targetBlock = blockBonusMap.get( threeAddr.getR1() );
                     targetBlock.prev.add( currentBlock );
                     currentBlock.next.add( targetBlock );
-                }
+                }*/
                 else{
                     // normal IR, just flow down
                     if(i != blockBonusList.size()-1){
@@ -472,6 +487,44 @@ public class RegAlloc {
             i = i + 1;
         }
     }
+    public void linkIRinBlocks(){
+        int i = 0;
+        int j, k;
+        BlockBonus currentBlk, prevBlk, nextBlk;
+        while(i < blockBonusList.size()){
+            currentBlk = blockBonusList.get(i);
+            j = 0;
+            while(j < currentBlk.IrList.size()){
+                if(j != 0){
+                    currentBlk.IrList.get(j).prevIR.add( currentBlk.IrList.get(j-1) );
+                }
+                else{
+                    // look for prevBlock
+                    k = 0;
+                    while(k < currentBlk.prev.size()){
+                        prevBlk = currentBlk.prev.get(k);
+                        currentBlk.IrList.get(j).prevIR.add( prevBlk.tailIR );
+                        k = k + 1;
+                    }
+                }
+                if(j != currentBlk.IrList.size()-1){
+                    currentBlk.IrList.get(j).nextIR.add( currentBlk.IrList.get(j+1) );
+                }
+                else{
+                    // look for next block
+                    k = 0;
+                    while(k < currentBlk.next.size()){
+                        nextBlk = currentBlk.next.get(k);
+                        currentBlk.IrList.get(j).prevIR.add( nextBlk.IrList.get(0) );
+                        k = k + 1;
+                    }
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+
     public void liveAnalysis(){
         Boolean changeFlag = true;
         BlockBonus currentBlk;
@@ -489,14 +542,13 @@ public class RegAlloc {
                 currentBlk = processQ.remove();
                 // add successor's in to currentBlk.tailIR.out
                 i = 0;
+                sizeBefore = currentBlk.tailIR.out.size();
+                currentBlk.tailIR.out.clear();
                 while(i < currentBlk.next.size()){
                     nextIR = currentBlk.next.get(i).IrList.get(0);
-                    sizeBefore = currentBlk.tailIR.out.size();
                     for(Map.Entry<Symbol, Boolean> entry: nextIR.in.entrySet()){
                         currentBlk.tailIR.out.put(entry.getKey(), true);
                     }
-                    if( currentBlk.tailIR.out.size() != sizeBefore )
-                        changeFlag = true;
                     if(!traversedBlk.containsKey( currentBlk.next.get(i) )){
                         // put untraversed blocks into the processing qqqqqqqqqqq
                         processQ.add( currentBlk.next.get(i) );
@@ -504,6 +556,8 @@ public class RegAlloc {
                     }
                     i = i + 1;
                 }
+                if( currentBlk.tailIR.out.size() != sizeBefore )
+                    changeFlag = true;
             }
             // update instruction in each block, from the bottom of block
             // need to be careful about checking whether the block is unchanged
@@ -531,7 +585,6 @@ public class RegAlloc {
                         sizeBefore = prevIR.out.size();
                         for(Map.Entry<Symbol, Boolean> entry: currentIR.in.entrySet()){
                             prevIR.out.put( entry.getKey(), true );
-                            k = k + 1;
                         }
                         if(prevIR.out.size() != sizeBefore)
                             changeFlag = true;
@@ -540,6 +593,109 @@ public class RegAlloc {
                 }
                 i = i + 1;
             }
+        }
+    }
+    public void debugPrintLiveAnalysis(){
+        int i = 0, j;
+        IrCodeExtend currentIR;
+        while(i < blockBonusList.size()){
+            j = 0;
+            while(j < blockBonusList.get(i).IrList.size()){
+                currentIR = blockBonusList.get(i).IrList.get(j);
+                System.out.print( "\n\n" + currentIR.originalIR.toString() + "\n" );
+                System.out.print("IN: ");
+                for(Map.Entry<Symbol, Boolean> entry: currentIR.in.entrySet()){
+                    System.out.print( entry.getKey().getName() + ", ");
+                }
+                System.out.print("\nOUT: ");
+                for(Map.Entry<Symbol, Boolean> entry: currentIR.out.entrySet()){
+                    System.out.print( entry.getKey().getName() + ", ");
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+    public boolean IRinWeb(String varName, IrCodeExtend tempIR){
+        if(varToWeb.containsKey( varName )){
+            int i = 0;
+            ArrayList<Web> webList = varToWeb.get( varName );
+            while(i < webList.size()){
+                if( webList.get(i).irIncluded.containsKey(tempIR) )
+                    return true;
+                i = i + 1;
+            }
+            return false;
+        }
+        else{
+            return false;
+        }
+    }
+    public void spanWeb(Web newWeb, IrCodeExtend startIR){
+        IrCodeExtend currentIR, prevIR, nextIR;
+        int i;
+        Queue<IrCodeExtend> processQ = new LinkedList<>();
+        processQ.add(startIR);
+        newWeb.irIncluded.put(startIR, true);
+        while(!processQ.isEmpty()){
+            currentIR = processQ.remove();
+            // traverse prev IR
+            i = 0;
+            while (i < currentIR.prevIR.size()){
+                prevIR = currentIR.prevIR.get(i);
+                if(prevIR.out.containsKey( newWeb.originalSymbol ) && !newWeb.irIncluded.containsKey( prevIR )){
+                    newWeb.irIncluded.put( prevIR,true );
+                    processQ.add( prevIR );
+                }
+                i = i + 1;
+            }
+            // traverse next IR
+            i = 0;
+            while(i < currentIR.nextIR.size()){
+                nextIR = currentIR.nextIR.get(i);
+                if(nextIR.in.containsKey( newWeb.originalSymbol ) && !newWeb.irIncluded.containsKey( nextIR )){
+                    newWeb.irIncluded.put( nextIR,true );
+                    processQ.add( nextIR );
+                }
+                i = i + 1;
+            }
+        }
+    }
+    public void constructWeb(){
+        int i = 0;
+        int j;
+        BlockBonus currentBlk;
+        IrCodeExtend currentIR;
+        Web newWeb;
+        Symbol tempSymbol;
+        while(i < blockBonusList.size()){
+            currentBlk = blockBonusList.get(i);
+            j = 0;
+            while(j < currentBlk.IrList.size()){
+                currentIR = currentBlk.IrList.get(j);
+                tempSymbol = currentIR.symbolStart();
+                if(tempSymbol != null){
+                    // tempSymbol starts here
+                    if( IRinWeb( tempSymbol.getName(), currentIR )){
+                        j = j + 1;
+                        continue;
+                    }
+                    else{
+                        newWeb = new Web( tempSymbol );
+                        // populate that web here
+                        spanWeb( newWeb, currentIR );
+                        if(varToWeb.containsKey( tempSymbol.getName() ))
+                            varToWeb.get( tempSymbol.getName() ).add( newWeb );
+                        else {
+                            ArrayList<Web> webList = new ArrayList<>();
+                            webList.add( newWeb );
+                            varToWeb.put( tempSymbol.getName(), webList );
+                        }
+                    }
+                }
+                j = j + 1;
+            }
+            i = i + 1;
         }
     }
 }
