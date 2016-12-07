@@ -30,7 +30,7 @@ fun SymbolTableEntry.toParameterString(): String {
 }
 
 
-class MipsInstruction(val opcode: MipsOpcode, vararg val params: String) {
+open class MipsInstruction(val opcode: MipsOpcode, vararg val params: String) {
     override fun toString(): String {
         val stringBuilder = StringBuilder()
 
@@ -69,3 +69,10 @@ class MipsInstruction(val opcode: MipsOpcode, vararg val params: String) {
                 .append(")")
     }
 }
+
+class MipsLabel(val name: String): MipsInstruction(MipsOpcode.add) {
+    override fun toString(): String {
+        return "$name:\n"
+    }
+}
+

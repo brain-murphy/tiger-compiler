@@ -43,6 +43,10 @@ public enum MipsOpcode {
 
     beq(3, false),
     bne(3, false),
+    blt(3, false),
+    bgt(3, false),
+    bge(3, false),
+    ble(3, false),
 
     j(1, false),
     jr(1, false),

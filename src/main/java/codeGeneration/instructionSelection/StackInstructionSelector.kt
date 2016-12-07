@@ -13,17 +13,17 @@ import java.lang.reflect.Type
 class StackInstructionSelector(private val functionSymbol: Symbol, private val globalVarGpOffsets: Map<String, Int>) {
     val paramFpOffsets = mutableMapOf<String, Int>()
     val variableFpOffsets = mutableMapOf<String, Int>()
+    val stackCreationInstructions = mutableListOf<MipsInstruction>()
 
 
     fun makeStackFrame(code: List<IrCode>) {
-        val instructions = mutableListOf<MipsInstruction>()
 
-        storePastFp(instructions)
-        setFramePointer(instructions)
+        storePastFp(stackCreationInstructions)
+        setFramePointer(stackCreationInstructions)
 
         calculateParamAddresses(functionSymbol)
 
-        allocateVariables(code, instructions)
+        allocateVariables(code, stackCreationInstructions)
     }
 
     fun generateCallingCode(callCode: FunctionCallCode): List<MipsInstruction> {
