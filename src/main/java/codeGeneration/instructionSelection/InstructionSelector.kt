@@ -53,12 +53,13 @@ class InstructionSelector(private val ir: LinearIr) {
             }
 
         } else if (instruction is FunctionCallCode) {
-            val stackInstructionSelector = stackInstructionSelectors[instruction.functionSymbol]
+            if ( instruction.functionSymbol.getAttribute(Attribute.FUNCTION_START_LABEL) != null) {
+                val stackInstructionSelector = stackInstructionSelectors[instruction.functionSymbol]
 
-            val functionCallStackCode = stackInstructionSelector!!.generateCallingCode(instruction)
+                val functionCallStackCode = stackInstructionSelector!!.generateCallingCode(instruction)
 
-            functionCallStackCode.forEach { formatter.appendInstruction(it) }
-
+                functionCallStackCode.forEach { formatter.appendInstruction(it) }
+            }
         } else if (instruction is ThreeAddressCode) {
             val instructions = generateThreeAddressCodeAssembly(instruction, functionSymbol)
 
@@ -254,7 +255,7 @@ class InstructionSelector(private val ir: LinearIr) {
             opcode = MipsOpcode.add_s
         }
 
-        return listOf(MipsInstruction(opcode, irInstruction.r1.name, irInstruction.r2.name, irInstruction.r3.name))
+        return listOf(MipsInstruction(opcode, irInstruction.r1.name, irInstruction.r2.name))
     }
 
     private fun generateArrayStore(irInstruction: ThreeAddressCode, functionSymbol: Symbol): List<MipsInstruction> {
@@ -357,6 +358,8 @@ class InstructionSelector(private val ir: LinearIr) {
 
                 currentFunctionCodes = mutableListOf()
                 currentFunctionSymbol = findFunctionSymbolByLabel(it as Label)
+            } else if (it is Label && it.name == "_main") {
+                functionSegments.put(currentFunctionSymbol, currentFunctionCodes)
             }
 
             currentFunctionCodes.add(it)
@@ -367,19 +370,20 @@ class InstructionSelector(private val ir: LinearIr) {
     }
 
     private fun findFunctionSymbolByLabel(label: Label): Symbol {
-        return functionSymbols.first { it.getAttribute(Attribute.FUNCTION_START_LABEL) == label }
+        return functionSymbols.first { (it.getAttribute(Attribute.FUNCTION_START_LABEL) as Label).name == label.name }
     }
 
     private fun isFunctionStart(code: IrCode): Boolean {
-        return code is Label && functionSymbols.any { it.getAttribute(Attribute.FUNCTION_START_LABEL) == code }
+        return code is Label && functionSymbols.any { (it.getAttribute(Attribute.FUNCTION_START_LABEL) as Label).name == code.name }
     }
 
     private fun findAllFunctionLabels() {
-        val functionLabelsUsed = ir.filterIsInstance<FunctionCallCode>()
+        val functionSymbolsUsed = ir.filterIsInstance<FunctionCallCode>()
                 .map { it.functionSymbol }
+                .filter { it.getAttribute(Attribute.FUNCTION_START_LABEL) != null }
                 .distinct()
 
-        functionSymbols.addAll(functionLabelsUsed)
+        functionSymbols.addAll(functionSymbolsUsed)
     }
 
     private fun makeDataSegment() {
@@ -439,7 +443,7 @@ class InstructionSelector(private val ir: LinearIr) {
 
         val literals = allSymbols
                 .filterIsInstance<Symbol>()
-                .filter { it.getAttribute(Attribute.IS_LITERAL) as Boolean }
+                .filter { it.getAttribute(Attribute.IS_LITERAL) is Boolean }
                 .distinct()
         return literals
     }

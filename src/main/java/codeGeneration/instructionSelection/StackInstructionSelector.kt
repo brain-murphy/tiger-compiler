@@ -105,12 +105,12 @@ class StackInstructionSelector(private val functionSymbol: Symbol, private val g
     private fun getDistictSymbolsUsed(irCode: List<IrCode>): List<Symbol> {
         val allSymbols = mutableListOf<SymbolTableEntry>()
         irCode.filterIsInstance<ThreeAddressCode>().forEach {
-            allSymbols.add(it.r1)
-            allSymbols.add(it.r2)
-            allSymbols.add(it.r3)
+            if (it.r1 != null) allSymbols.add(it.r1)
+            if (it.r2 != null) allSymbols.add(it.r2)
+            if (it.r3 != null) allSymbols.add(it.r3)
         }
         irCode.filterIsInstance<FunctionCallCode>().forEach {
-            allSymbols.add(it.r1)
+            if (it.r1 != null) allSymbols.add(it.r1)
             allSymbols.addAll(it.args)
         }
 
