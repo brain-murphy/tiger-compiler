@@ -26,6 +26,9 @@ public class RegAlloc {
     List<String> outputIRNaive = new ArrayList<String>();
     LinearIr naiveIR = new LinearIr();
     private List<Block> blockList = new ArrayList<Block>();
+    private List<BlockBonus> blockBonusList = new ArrayList<BlockBonus>();
+    // need a map for bonus block
+    private Map<IrCode, BlockBonus> blockBonusMap = new HashMap<>();
 
     public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
@@ -356,17 +359,21 @@ public class RegAlloc {
         while(i < ir.getCodeSequence().size()){
             currentIR = ir.getCodeSequence().get(i);
             if(i == 0 || currentIR instanceof Label || branchNext){
-                newBlock = new BlockBonus();
                 branchNext = false;
+                newBlock = new BlockBonus();
+                blockBonusList.add(newBlock);
+                blockBonusMap.put( currentIR, newBlock );
             }
             if(currentIR instanceof Label){
                 IrCodeExtend newIr = new IrCodeExtend(currentIR);
                 newBlock.IrList.add( newIr );
+                newBlock.tailIR = currentIR;
             }
             else if(currentIR instanceof FunctionCallCode){
                 // function call
                 IrCodeExtend newIr = new IrCodeExtend(currentIR);
                 newBlock.IrList.add( newIr );
+                newBlock.tailIR = currentIR;
                 FunctionCallCode funcCall = (FunctionCallCode) currentIR;
                 if(funcCall.getR1() != null){
                     // caller
@@ -386,26 +393,80 @@ public class RegAlloc {
                 // create newIr
                 IrCodeExtend newIr = new IrCodeExtend(currentIR);
                 newBlock.IrList.add( newIr );
+                newBlock.tailIR = currentIR;
                 if(threeAddr.getOp() == IrOperation.BREQ
                         || threeAddr.getOp() == IrOperation.BRGEQ
                         || threeAddr.getOp() == IrOperation.BRGT
                         || threeAddr.getOp() == IrOperation.BRLEQ
                         || threeAddr.getOp() == IrOperation.BRLT
-                        || threeAddr.getOp() == IrOperation.BRNEQ){
+                        || threeAddr.getOp() == IrOperation.BRNEQ
+                        || threeAddr.getOp() == IrOperation.GOTO
+                        || threeAddr.getOp() == IrOperation.RETURN){
                     branchNext = true;
                 }
                 // r1, r2, r3 could be symbol and label, ignore label
                 if(threeAddr.getR1() != null && !(threeAddr.getR1() instanceof Label)){
                     newIr.def.add( (Symbol)threeAddr.getR1() );
                 }
-                if(threeAddr.getR2() != null && !(threeAddr.getR2() instanceof Label)){
+                if(threeAddr.getR2() != null){
                     newIr.use.add( (Symbol)threeAddr.getR2() );
                     newIr.in.put( (Symbol)threeAddr.getR2(), true );
                 }
-                if(threeAddr.getR3() != null && !(threeAddr.getR3() instanceof Label)){
+                if(threeAddr.getR3() != null){
                     newIr.use.add( (Symbol)threeAddr.getR3() );
                     newIr.in.put( (Symbol)threeAddr.getR3(), true );
                 }
+            }
+            i = i + 1;
+        }
+    }
+    public void buildBlocksCFG(){
+        // populated the prev and next list in blockBonus obj
+        int i = 0;
+        IrCode tailIR;
+        BlockBonus currentBlock;
+        BlockBonus targetBlock;
+        while(i < blockBonusList.size()){
+            currentBlock = blockBonusList.get(i);
+            tailIR = currentBlock.tailIR;
+            if(tailIR instanceof Label || tailIR instanceof FunctionCallCode){
+                if(i != blockBonusList.size()-1)
+                    blockBonusList.get(i+1).prev.add( currentBlock );
+                    currentBlock.next.add( blockBonusList.get(i+1) );
+            }
+            else if(tailIR instanceof ThreeAddressCode){
+                ThreeAddressCode threeAddr = (ThreeAddressCode) tailIR;
+                if(threeAddr.getOp() == IrOperation.BREQ
+                        || threeAddr.getOp() == IrOperation.BRGEQ
+                        || threeAddr.getOp() == IrOperation.BRGT
+                        || threeAddr.getOp() == IrOperation.BRLEQ
+                        || threeAddr.getOp() == IrOperation.BRLT
+                        || threeAddr.getOp() == IrOperation.BRNEQ){
+                    // need to determine it's next block
+                    targetBlock = blockBonusMap.get( threeAddr.getR1() );
+                    targetBlock.prev.add( currentBlock );
+                    currentBlock.next.add( targetBlock );
+                    // flow down
+                    if(i != blockBonusList.size()-1){
+                        blockBonusList.get(i+1).prev.add( currentBlock );
+                        currentBlock.next.add( blockBonusList.get(i+1) );
+                    }
+                }
+                else if(threeAddr.getOp() == IrOperation.GOTO || threeAddr.getOp() == IrOperation.RETURN){
+                    targetBlock = blockBonusMap.get( threeAddr.getR1() );
+                    targetBlock.prev.add( currentBlock );
+                    currentBlock.next.add( targetBlock );
+                }
+                else{
+                    // normal IR, just flow down
+                    if(i != blockBonusList.size()-1){
+                        blockBonusList.get(i+1).prev.add( currentBlock );
+                        currentBlock.next.add( blockBonusList.get(i+1) );
+                    }
+                }
+            }
+            else {
+                System.out.print("What is the type of IR??\n");
             }
             i = i + 1;
         }
