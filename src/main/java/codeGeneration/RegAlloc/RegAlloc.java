@@ -12,6 +12,8 @@ import util.Reader;
 
 import java.util.*;
 
+import static java.lang.Integer.MAX_VALUE;
+
 /**
  * Created by fishlinghu on 2016/11/30.
  */
@@ -31,6 +33,7 @@ public class RegAlloc {
     // need a map for bonus block
     private Map<IrCode, BlockBonus> blockBonusMap = new HashMap<>();
     private Map<String, ArrayList<Web>> varToWeb = new HashMap<String, ArrayList<Web>>();
+    private List<Web> totalWebList = new ArrayList<>();
 
     public boolean isNumeric(String str) {
         return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
@@ -359,6 +362,8 @@ public class RegAlloc {
         linkIRinBlocks();
         liveAnalysis();
         constructWeb();
+        constructWebCFG();
+        webColoring();
     }
     public void buildBlocksBonus(LinearIr ir){
         Boolean branchNext = false;
@@ -684,6 +689,7 @@ public class RegAlloc {
                         newWeb = new Web( tempSymbol );
                         // populate that web here
                         spanWeb( newWeb, currentIR );
+                        totalWebList.add(newWeb);
                         if(varToWeb.containsKey( tempSymbol.getName() ))
                             varToWeb.get( tempSymbol.getName() ).add( newWeb );
                         else {
@@ -697,5 +703,160 @@ public class RegAlloc {
             }
             i = i + 1;
         }
+    }
+    public void constructWebCFG(){
+        int i, j;
+        boolean overlapFlag;
+        Web web1, web2;
+        i = 0;
+        while(i < totalWebList.size()-1){
+            web1 = totalWebList.get(i);
+            j = i + 1;
+            while(j < totalWebList.size()){
+                web2 = totalWebList.get(j);
+                overlapFlag = false;
+                for(Map.Entry<IrCodeExtend, Boolean> entry: web1.irIncluded.entrySet()){
+                    if(web2.irIncluded.containsKey( entry.getKey() )){
+                        overlapFlag = true;
+                        break;
+                    }
+                }
+                if(overlapFlag){
+                    web1.neighbor.add( web2 );
+                    web2.neighbor.add( web1 );
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+    public void webColoring(){
+        Stack processStack = new Stack();
+        Map<Integer, Boolean> pushedWebIdx = new HashMap<>();
+        int n = 10;
+        int i = 0;
+        while(i < totalWebList.size()){
+            if(totalWebList.get(i).neighbor.size() < n){
+                pushedWebIdx.put(i, true);
+                processStack.push( totalWebList.get(i) );
+            }
+            i = i + 1;
+        }
+        int spillCost;
+        int idx;
+        while(processStack.size() < totalWebList.size()){
+            i = 0;
+            spillCost = MAX_VALUE;
+            idx = -1;
+            while (i < totalWebList.size()){
+                if(pushedWebIdx.containsKey(i)){
+                    i = i + 1;
+                    continue;
+                }
+                if(totalWebList.get(i).irIncluded.size() < spillCost){
+                    spillCost = totalWebList.get(i).irIncluded.size();
+                    idx = i;
+                }
+                i = i + 1;
+            }
+            pushedWebIdx.put(idx, true);
+            processStack.push( totalWebList.get(idx) );
+        }
+        Map<Integer, Boolean> removedWebIdx = new HashMap<>();
+        while (!doWebColoring(processStack)){
+            // coloring fail, restart
+            processStack.clear();
+            pushedWebIdx.clear();
+            i = 0;
+            while(i < totalWebList.size()){
+                totalWebList.get(i).regSymbol = null;
+                i = i + 1;
+            }
+            // pick a web to remove
+            i = 0;
+            spillCost = MAX_VALUE;
+            idx = -1;
+            while(i < totalWebList.size()){
+                if(!removedWebIdx.containsKey(i) && totalWebList.get(i).irIncluded.size() < spillCost){
+                    spillCost = totalWebList.get(i).irIncluded.size();
+                    idx = i;
+                }
+                i = i + 1;
+            }
+            removedWebIdx.put(idx, true);
+            // populate the stack
+            i = 0;
+            while(i < totalWebList.size()){
+                if(totalWebList.get(i).neighbor.size() < n && !removedWebIdx.containsKey(i)){
+                    pushedWebIdx.put(i, true);
+                    processStack.push( totalWebList.get(i) );
+                }
+                i = i + 1;
+            }
+
+            while(processStack.size() < totalWebList.size()-removedWebIdx.size()){
+                i = 0;
+                spillCost = MAX_VALUE;
+                idx = -1;
+                while (i < totalWebList.size()){
+                    if(pushedWebIdx.containsKey(i) || removedWebIdx.containsKey(i)){
+                        i = i + 1;
+                        continue;
+                    }
+                    if(totalWebList.get(i).irIncluded.size() < spillCost){
+                        spillCost = totalWebList.get(i).irIncluded.size();
+                        idx = i;
+                    }
+                    i = i + 1;
+                }
+                pushedWebIdx.put(idx, true);
+                processStack.push( totalWebList.get(idx) );
+            }
+        }
+    }
+    public boolean doWebColoring(Stack processStack){
+        // stack is populated, start to do coloring
+        Web currentWeb;
+        while(!processStack.empty()){
+            currentWeb = (Web)processStack.pop();
+            Map<String, Boolean> availableReg = new HashMap<>();{
+                availableReg.put("$t0", true);
+                availableReg.put("$t1", true);
+                availableReg.put("$t2", true);
+                availableReg.put("$t3", true);
+                availableReg.put("$t4", true);
+                availableReg.put("$t5", true);
+                availableReg.put("$t6", true);
+                availableReg.put("$t7", true);
+                availableReg.put("$t8", true);
+                availableReg.put("$t9", true);
+            }
+            int i = 0;
+            while(i < currentWeb.neighbor.size()){
+                if(currentWeb.neighbor.get(i).regSymbol != null)
+                    availableReg.remove( currentWeb.neighbor.get(i).regSymbol.getName() );
+                i = i + 1;
+            }
+            // the rest are available registers
+            for(Map.Entry<String, Boolean> entry: availableReg.entrySet()){
+                // create a register symbol, and put that symbol into the web
+                Symbol regSymbol = new Symbol( entry.getKey() );
+                // copy the attribute
+                Object tempObj;
+                for(Attribute att: Attribute.values()){
+                    tempObj = currentWeb.originalSymbol.getAttribute( att );
+                    if(tempObj != null){
+                        regSymbol.putAttribute(att, tempObj);
+                    }
+                }
+                currentWeb.regSymbol = regSymbol;
+                break;
+            }
+            if(currentWeb.regSymbol == null){
+                // no enough register
+                return false;
+            }
+        }
+        return true;
     }
 }
