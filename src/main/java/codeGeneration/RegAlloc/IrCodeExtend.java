@@ -15,7 +15,8 @@ import java.util.Map;
 public class IrCodeExtend {
     public Map<Symbol, Boolean> in = new HashMap<>();
     public Map<Symbol, Boolean> out = new HashMap<>();
-    public List<Symbol> def = new ArrayList<>();
+    //public List<Symbol> def = new ArrayList<>();
+    public Symbol def;
     public List<Symbol> use = new ArrayList<>();
     public IrCode originalIR;
 

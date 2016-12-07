@@ -367,17 +367,17 @@ public class RegAlloc {
             if(currentIR instanceof Label){
                 IrCodeExtend newIr = new IrCodeExtend(currentIR);
                 newBlock.IrList.add( newIr );
-                newBlock.tailIR = currentIR;
+                newBlock.tailIR = newIr;
             }
             else if(currentIR instanceof FunctionCallCode){
                 // function call
                 IrCodeExtend newIr = new IrCodeExtend(currentIR);
                 newBlock.IrList.add( newIr );
-                newBlock.tailIR = currentIR;
+                newBlock.tailIR = newIr;
                 FunctionCallCode funcCall = (FunctionCallCode) currentIR;
                 if(funcCall.getR1() != null){
                     // caller
-                    newIr.def.add( (Symbol) funcCall.getR1() );
+                    newIr.def = (Symbol) funcCall.getR1();
                 }
                 int j = 0;
                 Symbol[] args = funcCall.getArgs();
@@ -393,7 +393,7 @@ public class RegAlloc {
                 // create newIr
                 IrCodeExtend newIr = new IrCodeExtend(currentIR);
                 newBlock.IrList.add( newIr );
-                newBlock.tailIR = currentIR;
+                newBlock.tailIR = newIr;
                 if(threeAddr.getOp() == IrOperation.BREQ
                         || threeAddr.getOp() == IrOperation.BRGEQ
                         || threeAddr.getOp() == IrOperation.BRGT
@@ -406,7 +406,7 @@ public class RegAlloc {
                 }
                 // r1, r2, r3 could be symbol and label, ignore label
                 if(threeAddr.getR1() != null && !(threeAddr.getR1() instanceof Label)){
-                    newIr.def.add( (Symbol)threeAddr.getR1() );
+                    newIr.def = (Symbol)threeAddr.getR1();
                 }
                 if(threeAddr.getR2() != null){
                     newIr.use.add( (Symbol)threeAddr.getR2() );
@@ -428,11 +428,12 @@ public class RegAlloc {
         BlockBonus targetBlock;
         while(i < blockBonusList.size()){
             currentBlock = blockBonusList.get(i);
-            tailIR = currentBlock.tailIR;
+            tailIR = currentBlock.tailIR.originalIR;
             if(tailIR instanceof Label || tailIR instanceof FunctionCallCode){
-                if(i != blockBonusList.size()-1)
-                    blockBonusList.get(i+1).prev.add( currentBlock );
-                    currentBlock.next.add( blockBonusList.get(i+1) );
+                if(i != blockBonusList.size()-1) {
+                    blockBonusList.get(i + 1).prev.add(currentBlock);
+                    currentBlock.next.add(blockBonusList.get(i + 1));
+                }
             }
             else if(tailIR instanceof ThreeAddressCode){
                 ThreeAddressCode threeAddr = (ThreeAddressCode) tailIR;
@@ -469,6 +470,76 @@ public class RegAlloc {
                 System.out.print("What is the type of IR??\n");
             }
             i = i + 1;
+        }
+    }
+    public void liveAnalysis(){
+        Boolean changeFlag = true;
+        BlockBonus currentBlk;
+        IrCodeExtend currentIR, nextIR, prevIR;
+        int i, j, k, sizeBefore;
+        while(changeFlag){
+            changeFlag = false;
+            // update block first, using CFG and traversed map, and a queue
+            // put blockBonusList.get(0) in the queue
+            Map<BlockBonus, Boolean> traversedBlk = new HashMap<>();
+            Queue<BlockBonus> processQ = new LinkedList<>();
+            processQ.add( blockBonusList.get(0) );
+            traversedBlk.put( blockBonusList.get(0), true );
+            while(!processQ.isEmpty()){
+                currentBlk = processQ.remove();
+                // add successor's in to currentBlk.tailIR.out
+                i = 0;
+                while(i < currentBlk.next.size()){
+                    nextIR = currentBlk.next.get(i).IrList.get(0);
+                    sizeBefore = currentBlk.tailIR.out.size();
+                    for(Map.Entry<Symbol, Boolean> entry: nextIR.in.entrySet()){
+                        currentBlk.tailIR.out.put(entry.getKey(), true);
+                    }
+                    if( currentBlk.tailIR.out.size() != sizeBefore )
+                        changeFlag = true;
+                    if(!traversedBlk.containsKey( currentBlk.next.get(i) )){
+                        // put untraversed blocks into the processing qqqqqqqqqqq
+                        processQ.add( currentBlk.next.get(i) );
+                        // the case when a block cannot be reached by any other blocks is not considered here
+                    }
+                    i = i + 1;
+                }
+            }
+            // update instruction in each block, from the bottom of block
+            // need to be careful about checking whether the block is unchanged
+            i = 0;
+            while(i < blockBonusList.size()){
+                j = blockBonusList.get(i).IrList.size()-1;
+                while( j >= 0 ){
+                    currentIR = blockBonusList.get(i).IrList.get(j);
+                    sizeBefore = currentIR.in.size();
+                    currentIR.in.clear();
+                    for(Map.Entry<Symbol, Boolean> entry: currentIR.out.entrySet()){
+                        currentIR.in.put( entry.getKey(), true );
+                    }
+                    currentIR.in.remove( currentIR.def );
+                    k = 0;
+                    while (k < currentIR.use.size()){
+                        currentIR.in.put( currentIR.use.get(k), true );
+                        k = k + 1;
+                    }
+                    if(currentIR.in.size() != sizeBefore)
+                        changeFlag = true;
+                    if(j != 0){
+                        // out[i-1] = in[i]
+                        prevIR = blockBonusList.get(i).IrList.get(j-1);
+                        sizeBefore = prevIR.out.size();
+                        for(Map.Entry<Symbol, Boolean> entry: currentIR.in.entrySet()){
+                            prevIR.out.put( entry.getKey(), true );
+                            k = k + 1;
+                        }
+                        if(prevIR.out.size() != sizeBefore)
+                            changeFlag = true;
+                    }
+                    j = j - 1;
+                }
+                i = i + 1;
+            }
         }
     }
 }
