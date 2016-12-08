@@ -239,10 +239,10 @@ public class RegAlloc {
         }
         /*genRegAllocNaive();
         print_IRNaive();*/
-        /*System.out.print("======================\n");
+        System.out.print("======================\n");
         System.out.print("CFG coloring: \n");
         System.out.print("======================\n");
-        genRegAllocCFG();*/
+        genRegAllocCFG();
     }
 
     public void genRegAllocNaive(){
@@ -331,19 +331,24 @@ public class RegAlloc {
         Block newBlock = new Block();
         boolean afterBranch = false;
         while(i < originalIR.size()){
+            //System.out.print(originalIR.get(i).get(0) + "\n");
             if(i == 0 || afterBranch){
                 // new block
                 afterBranch = false;
                 newBlock = new Block();
                 blockList.add(newBlock);
             }
-            else if(originalIR.get(i).size() == 1 && !Objects.equals(originalIR.get(i).get(0), "_main:")){
+            else if(originalIR.get(i).size() == 1
+                    && !Objects.equals(originalIR.get(i).get(0), "_main:")
+                    && !Objects.equals(originalIR.get(i).get(0), "RETURN")){
                 // next line MIGHT be the beginning of a new block
                 // if it is the target of any branch
+                //System.out.print(originalIR.get(i).get(0) + "\n");
                 newBlock = new Block();
                 blockList.add(newBlock);
             }
             else if(originalIR.get(i).get(0).charAt(0) == 'B' || Objects.equals(originalIR.get(i).get(0), "RETURN")){
+                //System.out.print(originalIR.get(i).get(0) + "\n");
                 afterBranch = true;
             }
             // populate the line into block
@@ -629,26 +634,26 @@ public class RegAlloc {
         }
     }
     public void spanWeb(Web newWeb, IrCodeExtend startIR){
-        System.out.print("Expand web for " + newWeb.originalSymbol.getName() + "\n");
+        //System.out.print("Expand web for " + newWeb.originalSymbol.getName() + "\n");
         IrCodeExtend currentIR, prevIR, nextIR;
         int i;
         Queue<IrCodeExtend> processQ = new LinkedList<>();
         processQ.add(startIR);
         newWeb.irIncluded.put(startIR, true);
         newWeb.originalIRIncluded.put(startIR.originalIR, true);
-        System.out.print("Put " + startIR.originalIR.toString() + "\n");
+        //System.out.print("Put " + startIR.originalIR.toString() + "\n");
         while(!processQ.isEmpty()){
             currentIR = processQ.remove();
-            System.out.print("Current IR: " + currentIR.originalIR.toString() + "\n");
+            //System.out.print("Current IR: " + currentIR.originalIR.toString() + "\n");
             // traverse prev IR
             i = 0;
             while (i < currentIR.prevIR.size()){
                 prevIR = currentIR.prevIR.get(i);
-                System.out.print("Find prevIR: " + prevIR.originalIR.toString() + "\n");
+                //System.out.print("Find prevIR: " + prevIR.originalIR.toString() + "\n");
                 if(prevIR.out.containsKey( newWeb.originalSymbol ) && !newWeb.irIncluded.containsKey( prevIR )){
                     newWeb.irIncluded.put( prevIR,true );
                     newWeb.originalIRIncluded.put(prevIR.originalIR, true);
-                    System.out.print("Put " + prevIR.originalIR.toString() + "\n");
+                    //System.out.print("Put " + prevIR.originalIR.toString() + "\n");
                     processQ.add( prevIR );
                 }
                 i = i + 1;
@@ -657,17 +662,17 @@ public class RegAlloc {
             i = 0;
             while(i < currentIR.nextIR.size()){
                 nextIR = currentIR.nextIR.get(i);
-                System.out.print("Find nextIR: " + nextIR.originalIR.toString() + "\n");
+                //System.out.print("Find nextIR: " + nextIR.originalIR.toString() + "\n");
                 if(nextIR.in.containsKey( newWeb.originalSymbol ) && !newWeb.irIncluded.containsKey( nextIR )){
                     newWeb.irIncluded.put( nextIR,true );
                     newWeb.originalIRIncluded.put(nextIR.originalIR, true);
-                    System.out.print("Put " + nextIR.originalIR.toString() + "\n");
+                    //System.out.print("Put " + nextIR.originalIR.toString() + "\n");
                     processQ.add( nextIR );
                 }
                 i = i + 1;
             }
         }
-        System.out.print("Done. \n");
+        //System.out.print("Done. \n");
     }
     public void constructWeb(){
         int i = 0;
