@@ -1,6 +1,7 @@
 package codeGeneration.RegAlloc;
 
 import com.sun.org.apache.xpath.internal.operations.Bool;
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 import parser.ParseCoordinator;
 import parser.semantic.ir.*;
 import parser.semantic.symboltable.Attribute;
@@ -28,6 +29,7 @@ public class RegAlloc {
     //private List<List<String>> outputIRNaive = new ArrayList<List<String>>();
     List<String> outputIRNaive = new ArrayList<String>();
     LinearIr naiveIR = new LinearIr();
+    LinearIr bonusIR = new LinearIr();
     private List<Block> blockList = new ArrayList<Block>();
     private List<BlockBonus> blockBonusList = new ArrayList<BlockBonus>();
     // need a map for bonus block
@@ -216,7 +218,13 @@ public class RegAlloc {
         System.out.print("\n=====================\n");
 
         genRegAllocBonus(temp);
-        debugPrintLiveAnalysis();
+        //printBlock();
+        //debugPrintLiveAnalysis();
+        printWeb();
+        emitBonusIR(temp);
+        System.out.print("\n========BONUS========\n");
+        System.out.print( bonusIR.toString() );
+        System.out.print("\n=====================\n");
 
         String[] tempArr = oldIR.split("\n");
         ArrayList<String> listOfIR = new ArrayList<String>(Arrays.asList(tempArr)); // Split IR line by line
@@ -396,8 +404,10 @@ public class RegAlloc {
                 int j = 0;
                 Symbol[] args = funcCall.getArgs();
                 while(j < args.length){
-                    newIr.use.add( args[j] );
-                    newIr.in.put( args[j], true );
+                    if( args[j].getAttribute(Attribute.IS_LITERAL) == null ) {
+                        newIr.use.add(args[j]);
+                        newIr.in.put(args[j], true);
+                    }
                     j = j + 1;
                 }
             }
@@ -420,7 +430,9 @@ public class RegAlloc {
                 }
                 // r1, r2, r3 could be symbol and label, ignore label
                 if(threeAddr.getR1() != null && !(threeAddr.getR1() instanceof Label)){
-                    newIr.def = (Symbol)threeAddr.getR1();
+                    Symbol tempSymbol = (Symbol) threeAddr.getR1();
+                    if( tempSymbol.getAttribute(Attribute.IS_LITERAL) == null )
+                        newIr.def = (Symbol)threeAddr.getR1();
                 }
                 if(threeAddr.getR2() != null){
                     Symbol tempSymbol = (Symbol) threeAddr.getR2();
@@ -520,7 +532,7 @@ public class RegAlloc {
                     k = 0;
                     while(k < currentBlk.next.size()){
                         nextBlk = currentBlk.next.get(k);
-                        currentBlk.IrList.get(j).prevIR.add( nextBlk.IrList.get(0) );
+                        currentBlk.IrList.get(j).nextIR.add( nextBlk.IrList.get(0) );
                         k = k + 1;
                     }
                 }
@@ -600,27 +612,7 @@ public class RegAlloc {
             }
         }
     }
-    public void debugPrintLiveAnalysis(){
-        int i = 0, j;
-        IrCodeExtend currentIR;
-        while(i < blockBonusList.size()){
-            j = 0;
-            while(j < blockBonusList.get(i).IrList.size()){
-                currentIR = blockBonusList.get(i).IrList.get(j);
-                System.out.print( "\n\n" + currentIR.originalIR.toString() + "\n" );
-                System.out.print("IN: ");
-                for(Map.Entry<Symbol, Boolean> entry: currentIR.in.entrySet()){
-                    System.out.print( entry.getKey().getName() + ", ");
-                }
-                System.out.print("\nOUT: ");
-                for(Map.Entry<Symbol, Boolean> entry: currentIR.out.entrySet()){
-                    System.out.print( entry.getKey().getName() + ", ");
-                }
-                j = j + 1;
-            }
-            i = i + 1;
-        }
-    }
+
     public boolean IRinWeb(String varName, IrCodeExtend tempIR){
         if(varToWeb.containsKey( varName )){
             int i = 0;
@@ -637,19 +629,26 @@ public class RegAlloc {
         }
     }
     public void spanWeb(Web newWeb, IrCodeExtend startIR){
+        System.out.print("Expand web for " + newWeb.originalSymbol.getName() + "\n");
         IrCodeExtend currentIR, prevIR, nextIR;
         int i;
         Queue<IrCodeExtend> processQ = new LinkedList<>();
         processQ.add(startIR);
         newWeb.irIncluded.put(startIR, true);
+        newWeb.originalIRIncluded.put(startIR.originalIR, true);
+        System.out.print("Put " + startIR.originalIR.toString() + "\n");
         while(!processQ.isEmpty()){
             currentIR = processQ.remove();
+            System.out.print("Current IR: " + currentIR.originalIR.toString() + "\n");
             // traverse prev IR
             i = 0;
             while (i < currentIR.prevIR.size()){
                 prevIR = currentIR.prevIR.get(i);
+                System.out.print("Find prevIR: " + prevIR.originalIR.toString() + "\n");
                 if(prevIR.out.containsKey( newWeb.originalSymbol ) && !newWeb.irIncluded.containsKey( prevIR )){
                     newWeb.irIncluded.put( prevIR,true );
+                    newWeb.originalIRIncluded.put(prevIR.originalIR, true);
+                    System.out.print("Put " + prevIR.originalIR.toString() + "\n");
                     processQ.add( prevIR );
                 }
                 i = i + 1;
@@ -658,13 +657,17 @@ public class RegAlloc {
             i = 0;
             while(i < currentIR.nextIR.size()){
                 nextIR = currentIR.nextIR.get(i);
+                System.out.print("Find nextIR: " + nextIR.originalIR.toString() + "\n");
                 if(nextIR.in.containsKey( newWeb.originalSymbol ) && !newWeb.irIncluded.containsKey( nextIR )){
                     newWeb.irIncluded.put( nextIR,true );
+                    newWeb.originalIRIncluded.put(nextIR.originalIR, true);
+                    System.out.print("Put " + nextIR.originalIR.toString() + "\n");
                     processQ.add( nextIR );
                 }
                 i = i + 1;
             }
         }
+        System.out.print("Done. \n");
     }
     public void constructWeb(){
         int i = 0;
@@ -858,5 +861,272 @@ public class RegAlloc {
             }
         }
         return true;
+    }
+    public void emitBonusIR(LinearIr originalIR){
+        Map<String, Symbol> usedReg = new HashMap<>(); // used reg mapped to variable
+        Map<String, Symbol> loadedVar = new HashMap<>(); // loaded var mapped to used reg
+        IrCode currentIR;
+        Symbol tempSymbol;
+        Web tempWeb;
+        int i = 0;
+        int j;
+        while(i < originalIR.getCodeSequence().size()){
+            currentIR = originalIR.getCodeSequence().get(i);
+            if(currentIR instanceof Label){
+                bonusIR.emit( currentIR );
+            }
+            else if(currentIR instanceof FunctionCallCode){
+                FunctionCallCode funcCode = (FunctionCallCode) currentIR;
+                if(funcCode.getR1() != null ){
+                    tempSymbol = (Symbol) funcCode.getR1();
+                    if(!loadedVar.containsKey(tempSymbol.getName()) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
+                        j = 0;
+                        tempWeb = null;
+                        // find corresponding web
+                        while(j < totalWebList.size()){
+                            if(totalWebList.get(j).contain(tempSymbol, currentIR)){
+                                tempWeb = totalWebList.get(j);
+                                break;
+                            }
+                            j = j + 1;
+                        }
+                        if(tempWeb != null){
+                            if(tempWeb.regSymbol != null){
+                                if(usedReg.containsKey(tempWeb.regSymbol.getName())){
+                                    // register already used
+                                    IrCode storeInstruction = new ThreeAddressCode(usedReg.get(tempWeb.regSymbol.getName()), IrOperation.STORE, tempWeb.regSymbol, null);
+                                    bonusIR.emit( storeInstruction );
+                                    loadedVar.remove( usedReg.get( tempWeb.regSymbol.getName() ).getName() );
+                                    usedReg.remove(tempWeb.regSymbol.getName());
+                                }
+                                usedReg.put( tempWeb.regSymbol.getName(), tempWeb.originalSymbol );
+                                loadedVar.put( tempWeb.originalSymbol.getName(), tempWeb.regSymbol );
+                                IrCode loadInstruction = new ThreeAddressCode(tempWeb.originalSymbol, IrOperation.LOAD, tempWeb.regSymbol, null);
+                                bonusIR.emit(loadInstruction);
+                            }
+                        }
+                        else{
+                            //System.out.print("\nCannot find matching web. \n");
+                            //System.out.print(currentIR.toString() + "\n");
+                        }
+                    }
+                }
+                // iterate through args
+                Symbol[] args = funcCode.getArgs();
+                j = 0;
+                while(j < args.length){
+                    tempSymbol = args[j];
+                    if(!loadedVar.containsKey(tempSymbol.getName()) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null ){
+                        j = 0;
+                        tempWeb = null;
+                        // find corresponding web
+                        while(j < totalWebList.size()){
+                            if(totalWebList.get(j).contain(tempSymbol, currentIR)){
+                                tempWeb = totalWebList.get(j);
+                                break;
+                            }
+                            j = j + 1;
+                        }
+                        if(tempWeb != null){
+                            if(tempWeb.regSymbol != null){
+                                if(usedReg.containsKey(tempWeb.regSymbol.getName())){
+                                    // register already used
+                                    IrCode storeInstruction = new ThreeAddressCode(usedReg.get(tempWeb.regSymbol.getName()), IrOperation.STORE, tempWeb.regSymbol, null);
+                                    bonusIR.emit( storeInstruction );
+                                    loadedVar.remove( usedReg.get( tempWeb.regSymbol.getName() ).getName() );
+                                    usedReg.remove(tempWeb.regSymbol.getName());
+                                }
+                                usedReg.put( tempWeb.regSymbol.getName(), tempWeb.originalSymbol );
+                                loadedVar.put( tempWeb.originalSymbol.getName(), tempWeb.regSymbol );
+                                IrCode loadInstruction = new ThreeAddressCode(tempWeb.originalSymbol, IrOperation.LOAD, tempWeb.regSymbol, null);
+                                naiveIR.emit(loadInstruction);
+                            }
+                        }
+                        else{
+                            //System.out.print("\nCannot find matching web. \n");
+                            //System.out.print(currentIR.toString() + "\n");
+                        }
+                    }
+                    j = j + 1;
+                }
+                bonusIR.emit( currentIR );
+            }
+            else if(currentIR instanceof ThreeAddressCode){
+                ThreeAddressCode instructionWithVariables = (ThreeAddressCode) currentIR;
+                if(instructionWithVariables.getR1() != null && (instructionWithVariables.getR1() instanceof Symbol)){
+                    tempSymbol = (Symbol) instructionWithVariables.getR1();
+                    if(!loadedVar.containsKey( tempSymbol.getName() ) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
+                        j = 0;
+                        tempWeb = null;
+                        // find corresponding web
+                        while(j < totalWebList.size()){
+                            if(totalWebList.get(j).contain(tempSymbol, currentIR)){
+                                tempWeb = totalWebList.get(j);
+                                break;
+                            }
+                            j = j + 1;
+                        }
+                        if(tempWeb != null){
+                            if(tempWeb.regSymbol != null){
+                                if(usedReg.containsKey(tempWeb.regSymbol.getName())){
+                                    // register already used
+                                    IrCode storeInstruction = new ThreeAddressCode(usedReg.get(tempWeb.regSymbol.getName()), IrOperation.STORE, tempWeb.regSymbol, null);
+                                    bonusIR.emit( storeInstruction );
+                                    loadedVar.remove( usedReg.get( tempWeb.regSymbol.getName() ).getName() );
+                                    usedReg.remove(tempWeb.regSymbol.getName());
+                                }
+                                usedReg.put( tempWeb.regSymbol.getName(), tempWeb.originalSymbol );
+                                loadedVar.put( tempWeb.originalSymbol.getName(), tempWeb.regSymbol );
+                                IrCode loadInstruction = new ThreeAddressCode(tempWeb.originalSymbol, IrOperation.LOAD, tempWeb.regSymbol, null);
+                                bonusIR.emit(loadInstruction);
+                            }
+                        }
+                        else{
+                            //System.out.print("\nCannot find matching web. \n");
+                            //System.out.print(currentIR.toString() + "\n");
+                        }
+                    }
+                }
+                if(instructionWithVariables.getR2() != null && (instructionWithVariables.getR2() instanceof Symbol)){
+                    tempSymbol = (Symbol) instructionWithVariables.getR2();
+                    if(!loadedVar.containsKey( tempSymbol.getName() ) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
+                        j = 0;
+                        tempWeb = null;
+                        // find corresponding web
+                        while(j < totalWebList.size()){
+                            if(totalWebList.get(j).contain(tempSymbol, currentIR)){
+                                tempWeb = totalWebList.get(j);
+                                break;
+                            }
+                            j = j + 1;
+                        }
+                        if(tempWeb != null){
+                            if(tempWeb.regSymbol != null){
+                                if(usedReg.containsKey(tempWeb.regSymbol.getName())){
+                                    // register already used
+                                    IrCode storeInstruction = new ThreeAddressCode(usedReg.get(tempWeb.regSymbol.getName()), IrOperation.STORE, tempWeb.regSymbol, null);
+                                    bonusIR.emit( storeInstruction );
+                                    loadedVar.remove( usedReg.get( tempWeb.regSymbol.getName() ).getName() );
+                                    usedReg.remove(tempWeb.regSymbol.getName());
+                                }
+                                usedReg.put( tempWeb.regSymbol.getName(), tempWeb.originalSymbol );
+                                loadedVar.put( tempWeb.originalSymbol.getName(), tempWeb.regSymbol );
+                                IrCode loadInstruction = new ThreeAddressCode(tempWeb.originalSymbol, IrOperation.LOAD, tempWeb.regSymbol, null);
+                                bonusIR.emit(loadInstruction);
+                            }
+                        }
+                        else{
+                            //System.out.print("\nCannot find matching web. \n");
+                            //System.out.print(currentIR.toString() + "\n");
+                        }
+                    }
+                }
+                if(instructionWithVariables.getR3() != null && (instructionWithVariables.getR3() instanceof Symbol)){
+                    tempSymbol = (Symbol) instructionWithVariables.getR3();
+                    if(!loadedVar.containsKey( tempSymbol.getName() ) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
+                        j = 0;
+                        tempWeb = null;
+                        // find corresponding web
+                        while(j < totalWebList.size()){
+                            if(totalWebList.get(j).contain(tempSymbol, currentIR)){
+                                tempWeb = totalWebList.get(j);
+                                break;
+                            }
+                            j = j + 1;
+                        }
+                        if(tempWeb != null){
+                            if(tempWeb.regSymbol != null){
+                                if(usedReg.containsKey(tempWeb.regSymbol.getName())){
+                                    // register already used
+                                    IrCode storeInstruction = new ThreeAddressCode(usedReg.get(tempWeb.regSymbol.getName()), IrOperation.STORE, tempWeb.regSymbol, null);
+                                    bonusIR.emit( storeInstruction );
+                                    loadedVar.remove( usedReg.get( tempWeb.regSymbol.getName() ).getName() );
+                                    usedReg.remove(tempWeb.regSymbol.getName());
+                                }
+                                usedReg.put( tempWeb.regSymbol.getName(), tempWeb.originalSymbol );
+                                loadedVar.put( tempWeb.originalSymbol.getName(), tempWeb.regSymbol );
+                                IrCode loadInstruction = new ThreeAddressCode(tempWeb.originalSymbol, IrOperation.LOAD, tempWeb.regSymbol, null);
+                                bonusIR.emit(loadInstruction);
+                            }
+                        }
+                        else{
+                            //System.out.print("\nCannot find matching web. \n");
+                            //System.out.print(currentIR.toString() + "\n");
+                        }
+                    }
+                }
+                bonusIR.emit( currentIR );
+            }
+            else{
+                System.out.print("\nWhat kind of IR?\n");
+            }
+            i = i + 1;
+        }
+        // store the rest
+        for(Map.Entry<String, Symbol> entry: loadedVar.entrySet()){
+            IrCode storeInstruction = new ThreeAddressCode(usedReg.get( entry.getValue().getName() ), IrOperation.STORE, entry.getValue(), null);
+            bonusIR.emit( storeInstruction );
+        }
+    }
+    public void debugPrintLiveAnalysis(){
+        int i = 0, j;
+        IrCodeExtend currentIR;
+        while(i < blockBonusList.size()){
+            j = 0;
+            while(j < blockBonusList.get(i).IrList.size()){
+                currentIR = blockBonusList.get(i).IrList.get(j);
+                System.out.print( "\n\n" + currentIR.originalIR.toString() + "\n" );
+                System.out.print("IN: ");
+                for(Map.Entry<Symbol, Boolean> entry: currentIR.in.entrySet()){
+                    System.out.print( entry.getKey().getName() + ", ");
+                }
+                System.out.print("\nOUT: ");
+                for(Map.Entry<Symbol, Boolean> entry: currentIR.out.entrySet()){
+                    System.out.print( entry.getKey().getName() + ", ");
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+    public void printWeb(){
+        int i, j;
+        i = 0;
+        while(i < totalWebList.size()){
+            System.out.print("\nWeb for: " + totalWebList.get(i).originalSymbol.getName() + "\n");
+            System.out.print("Register assigned: " + totalWebList.get(i).regSymbol.getName() + "\n");
+            System.out.print("IR included: \n");
+            for(Map.Entry<IrCode, Boolean> entry: totalWebList.get(i).originalIRIncluded.entrySet()){
+                System.out.print(entry.getKey().toString() + "\n");
+            }
+            i = i + 1;
+        }
+    }
+    public void printBlock(){
+        int i = 0;
+        int j;
+        while(i < blockBonusList.size()){
+            System.out.print("\nBlock " + i + "\n");
+            j = 0;
+            while(j < blockBonusList.get(i).IrList.size()){
+                System.out.print( blockBonusList.get(i).IrList.get(j).originalIR.toString() + "\n" );
+                j = j + 1;
+            }
+            System.out.print("Prev IR: ");
+            j = 0;
+            while(j < blockBonusList.get(i).prev.size()){
+                System.out.print( blockBonusList.get(i).prev.get(j).tailIR.originalIR.toString() + ", " );
+                j = j + 1;
+            }
+            System.out.print("\n");
+            System.out.print("Next IR: ");
+            j = 0;
+            while(j < blockBonusList.get(i).next.size()){
+                System.out.print( blockBonusList.get(i).next.get(j).IrList.get(0).originalIR.toString() + ", " );
+                j = j + 1;
+            }
+            System.out.print("\n");
+            i = i + 1;
+        }
     }
 }
