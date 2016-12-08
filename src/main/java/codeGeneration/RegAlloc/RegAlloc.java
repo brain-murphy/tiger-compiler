@@ -79,27 +79,29 @@ public class RegAlloc {
                 FunctionCallCode funcCode = (FunctionCallCode) currentIR;
                 String regName = "$t";
                 Object tempObj;
+                Symbol callerVar = null;
                 Symbol destSymbol;
                 int regCount = 0;
                 if(funcCode.getR1() != null){
                     Symbol oldSymbol = (Symbol) funcCode.getR1();
                     if(!varToReg.containsKey(oldSymbol)){
-                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        callerVar = new Symbol( regName+Integer.toString(regCount) );
                         regCount = regCount + 1;
                         // copy the attribute
                         for(Attribute att: Attribute.values()){
                             tempObj = oldSymbol.getAttribute( att );
                             if(tempObj != null){
-                                destSymbol.putAttribute(att, tempObj);
+                                callerVar.putAttribute(att, tempObj);
                             }
                         }
-                        IrCode loadInstruction = new ThreeAddressCode(funcCode.getR1(), IrOperation.LOAD, destSymbol, null);
+                        IrCode loadInstruction = new ThreeAddressCode(funcCode.getR1(), IrOperation.LOAD, callerVar, null);
                         naiveIR.emit(loadInstruction);
-                        varToReg.put(oldSymbol, destSymbol);
+                        varToReg.put(oldSymbol, callerVar);
                     }
                 }
                 // iterate through args
                 Symbol[] args = funcCode.getArgs();
+                Symbol[] newArgs = new Symbol[args.length];
                 int j = 0;
                 while(j < args.length){
                     if(varToReg.containsKey(args[j])){
@@ -107,6 +109,7 @@ public class RegAlloc {
                         continue;
                     }
                     destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                    newArgs[j] = destSymbol;
                     regCount = regCount + 1;
                     for(Attribute att: Attribute.values()){
                         tempObj = args[j].getAttribute( att );
@@ -119,7 +122,14 @@ public class RegAlloc {
                     varToReg.put(args[j], destSymbol);
                     j = j + 1;
                 }
-                naiveIR.emit(currentIR);
+                IrCode newIR;
+                if(callerVar == null) {
+                    newIR = new FunctionCallCode(funcCode.getOp(), funcCode.getFunctionSymbol(), newArgs);
+                }
+                else {
+                    newIR = new FunctionCallCode(callerVar, funcCode.getOp(), funcCode.getFunctionSymbol(), newArgs);
+                }
+                naiveIR.emit( newIR );
                 for(Map.Entry<Symbol, Symbol> entry: varToReg.entrySet()) {
                     IrCode storeInstruction = new ThreeAddressCode(entry.getKey(), IrOperation.STORE, entry.getValue(), null);
                     naiveIR.emit(storeInstruction);
@@ -127,63 +137,67 @@ public class RegAlloc {
             } else if (currentIR instanceof ThreeAddressCode) {
                 ThreeAddressCode instructionWithVariables = (ThreeAddressCode) currentIR;
                 Symbol exampleDestinationSymbol = null;
-                Symbol destSymbol;
+                SymbolTableEntry newR1, newR2, newR3;
                 String regName = "$t";
                 Object tempObj;
                 int regCount = 0;
                 // do some register allocation actions
+                newR1 = instructionWithVariables.getR1();
                 if(instructionWithVariables.getR1() != null && (instructionWithVariables.getR1() instanceof Symbol)){
                     Symbol oldSymbol = (Symbol) instructionWithVariables.getR1();
                     if(!varToReg.containsKey(oldSymbol)){
-                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        newR1 = new Symbol( regName+Integer.toString(regCount) );
                         regCount = regCount + 1;
                         // copy the attribute
                         for(Attribute att: Attribute.values()){
                             tempObj = oldSymbol.getAttribute( att );
                             if(tempObj != null){
-                                destSymbol.putAttribute(att, tempObj);
+                                ((Symbol)newR1).putAttribute(att, tempObj);
                             }
                         }
-                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR1(), IrOperation.LOAD, destSymbol, null);
+                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR1(), IrOperation.LOAD, newR1, null);
                         naiveIR.emit(loadInstruction);
-                        varToReg.put(oldSymbol, destSymbol);
+                        varToReg.put(oldSymbol, (Symbol) newR1);
                     }
                 }
+                newR2 = instructionWithVariables.getR2();
                 if(instructionWithVariables.getR2() != null && (instructionWithVariables.getR2() instanceof Symbol)){
                     Symbol oldSymbol = (Symbol) instructionWithVariables.getR2();
                     if(!varToReg.containsKey(oldSymbol)){
-                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        newR2 = new Symbol( regName+Integer.toString(regCount) );
                         regCount = regCount + 1;
                         // copy the attribute
                         for(Attribute att: Attribute.values()){
                             tempObj = oldSymbol.getAttribute( att );
                             if(tempObj != null){
-                                destSymbol.putAttribute(att, tempObj);
+                                ((Symbol)newR2).putAttribute(att, tempObj);
                             }
                         }
-                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR2(), IrOperation.LOAD, destSymbol, null);
+                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR2(), IrOperation.LOAD, newR2, null);
                         naiveIR.emit(loadInstruction);
-                        varToReg.put(oldSymbol, destSymbol);
+                        varToReg.put(oldSymbol, (Symbol)newR2);
                     }
                 }
+                newR3 = instructionWithVariables.getR3();
                 if(instructionWithVariables.getR3() != null && (instructionWithVariables.getR3() instanceof Symbol)){
                     Symbol oldSymbol = (Symbol) instructionWithVariables.getR3();
                     if(!varToReg.containsKey(oldSymbol)){
-                        destSymbol = new Symbol( regName+Integer.toString(regCount) );
+                        newR3 = new Symbol( regName+Integer.toString(regCount) );
                         regCount = regCount + 1;
                         // copy the attribute
                         for(Attribute att: Attribute.values()){
                             tempObj = oldSymbol.getAttribute( att );
                             if(tempObj != null){
-                                destSymbol.putAttribute(att, tempObj);
+                                ((Symbol)newR3).putAttribute(att, tempObj);
                             }
                         }
-                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR3(), IrOperation.LOAD, destSymbol, null);
+                        IrCode loadInstruction = new ThreeAddressCode(instructionWithVariables.getR3(), IrOperation.LOAD, newR3, null);
                         naiveIR.emit(loadInstruction);
-                        varToReg.put(oldSymbol, destSymbol);
+                        varToReg.put(oldSymbol, (Symbol) newR3);
                     }
                 }
-                naiveIR.emit( currentIR );
+                IrCode newIR = new ThreeAddressCode(newR1, instructionWithVariables.getOp(), newR2, newR3);
+                naiveIR.emit( newIR );
                 // emit store
                 for(Map.Entry<Symbol, Symbol> entry: varToReg.entrySet()){
                     IrCode storeInstruction = new ThreeAddressCode(entry.getKey(), IrOperation.STORE, entry.getValue(), null);
@@ -944,7 +958,7 @@ public class RegAlloc {
                                 usedReg.put( tempWeb.regSymbol.getName(), tempWeb.originalSymbol );
                                 loadedVar.put( tempWeb.originalSymbol.getName(), tempWeb.regSymbol );
                                 IrCode loadInstruction = new ThreeAddressCode(tempWeb.originalSymbol, IrOperation.LOAD, tempWeb.regSymbol, null);
-                                naiveIR.emit(loadInstruction);
+                                bonusIR.emit(loadInstruction);
                             }
                         }
                         else{
@@ -954,10 +968,31 @@ public class RegAlloc {
                     }
                     j = j + 1;
                 }
-                bonusIR.emit( currentIR );
+                Symbol newR1 = null;
+                if(funcCode.getR1() != null){
+                    newR1 = (Symbol)funcCode.getR1();
+                    if(loadedVar.containsKey( newR1.getName() )){
+                        newR1 = loadedVar.get( newR1.getName() );
+                    }
+                }
+                Symbol[] newArgs = new Symbol[args.length];
+                j = 0;
+                while(j < args.length){
+                    if(loadedVar.containsKey(args[j].getName())){
+                        newArgs[j] = loadedVar.get( args[j].getName() );
+                    }
+                    else{
+                        newArgs[j] = args[j];
+                    }
+                    j = j + 1;
+                }
+                IrCode functionIR = new FunctionCallCode(newR1, funcCode.getOp(), funcCode.getFunctionSymbol(), newArgs);
+                bonusIR.emit( functionIR );
             }
             else if(currentIR instanceof ThreeAddressCode){
                 ThreeAddressCode instructionWithVariables = (ThreeAddressCode) currentIR;
+                SymbolTableEntry newR1, newR2, newR3;
+                newR1 = instructionWithVariables.getR1();
                 if(instructionWithVariables.getR1() != null && (instructionWithVariables.getR1() instanceof Symbol)){
                     tempSymbol = (Symbol) instructionWithVariables.getR1();
                     if(!loadedVar.containsKey( tempSymbol.getName() ) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
@@ -992,6 +1027,7 @@ public class RegAlloc {
                         }
                     }
                 }
+                newR2 = instructionWithVariables.getR2();
                 if(instructionWithVariables.getR2() != null && (instructionWithVariables.getR2() instanceof Symbol)){
                     tempSymbol = (Symbol) instructionWithVariables.getR2();
                     if(!loadedVar.containsKey( tempSymbol.getName() ) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
@@ -1026,6 +1062,7 @@ public class RegAlloc {
                         }
                     }
                 }
+                newR3 = instructionWithVariables.getR3();
                 if(instructionWithVariables.getR3() != null && (instructionWithVariables.getR3() instanceof Symbol)){
                     tempSymbol = (Symbol) instructionWithVariables.getR3();
                     if(!loadedVar.containsKey( tempSymbol.getName() ) && tempSymbol.getAttribute(Attribute.IS_LITERAL) == null){
@@ -1060,7 +1097,23 @@ public class RegAlloc {
                         }
                     }
                 }
-                bonusIR.emit( currentIR );
+                if(newR1 != null){
+                    if(loadedVar.containsKey(newR1.getName())){
+                        newR1 = loadedVar.get( newR1.getName() );
+                    }
+                }
+                if(newR2 != null){
+                    if(loadedVar.containsKey(newR2.getName())){
+                        newR2 = loadedVar.get( newR2.getName() );
+                    }
+                }
+                if(newR3 != null){
+                    if(loadedVar.containsKey(newR3.getName())){
+                        newR3 = loadedVar.get( newR3.getName() );
+                    }
+                }
+                IrCode newIR = new ThreeAddressCode(newR1, ((ThreeAddressCode) currentIR).getOp(), newR2, newR3);
+                bonusIR.emit( newIR );
             }
             else{
                 System.out.print("\nWhat kind of IR?\n");
